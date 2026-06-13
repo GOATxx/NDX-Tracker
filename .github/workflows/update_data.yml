@@ -14,10 +14,6 @@ on:
 permissions:
   contents: write
   
-  # 💡 [핵심 추가] GitHub 서버 엔진 강제 업그레이드 설정
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  
 jobs:
   update-data:
     runs-on: ubuntu-latest # 가상의 리눅스 컴퓨터를 한 대 빌려옵니다.
