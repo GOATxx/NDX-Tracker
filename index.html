@@ -103,7 +103,7 @@
 
     <script>
         // 🚨 본인의 GitHub 레이티스트 JSON Base URL 유지
-        const baseUrl = 'https://raw.githubusercontent.com/여기를/본인/주소로/바꾸세요/main/data/';
+        const baseUrl = 'https://raw.githubusercontent.com/GOATxx/NDX-Tracker/refs/heads/main/data/';
 
         const chartDom = document.getElementById('heatmap-container');
         const myChart = echarts.init(chartDom);
@@ -268,15 +268,15 @@
                 graphic: [{
                     type: 'image',
                     id: 'logo',
-                    left: 'center',
-                    top: 'center',
-                    z: -10,
+                    left: 'center', // 가로 중앙
+                    top: 'center', // 세로 중앙
+                    z: -10, // 그래프 뒤에 위치
                     bounding: 'raw',
                     style: {
-                        image: 'https://images.squarespace-cdn.com/content/v1/56c7028f8a65e28a5b28d495/1614742468767-D8M7O0O3N9H2R9D9X6W5/QQQ_logo.png',
-                        width: 120,
-                        height: 60,
-                        opacity: 0.8
+                        image: 'https://www.invesco.com/content/dam/invesco/qqq-etf/en/images/invesco-proxy-vote.jpg',
+                        width: 120, // 로고 너비 조절
+                        height: 60, // 로고 높이 조절
+                        opacity: 0.8 // 약간의 투명도 적용
                     }
                 }],
                 tooltip: {
