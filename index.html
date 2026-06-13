@@ -3,30 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나스닥 100 기여도 대시보드</title>
+    <title>나스닥 100 & 자금 흐름 대시보드</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
-        /* 기본 스타일 및 다크모드 적용 */
         body { margin: 0; padding: 20px; background-color: #121212; color: white; font-family: sans-serif; }
         #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; color: #aaaaaa; z-index: 1000; }
         
-        /* 레이아웃 구성: 히트맵 구역 */
-        #heatmap-container { width: 100%; height: 60vh; margin-bottom: 30px; }
+        .tab-container { display: flex; border-bottom: 2px solid #333; margin-bottom: 10px; max-width: 1200px; margin-left: auto; margin-right: auto; }
+        .tab-button { background: none; border: none; color: #aaaaaa; padding: 15px 30px; font-size: 18px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
+        .tab-button:hover { color: white; background-color: #1e1e1e; }
+        .tab-button.active { color: #00b853; border-bottom: 3px solid #00b853; }
         
-        /* 하단 테이블 구역 스타일 */
-        .table-section { max-width: 1200px; margin: 0 auto; padding-bottom: 50px; }
-        .table-section h2 { font-size: 20px; margin-bottom: 15px; color: #e0e0e0; }
+        #date-info-bar { max-width: 1200px; margin: 0 auto 20px auto; text-align: right; font-size: 14px; color: #888; }
+        .date-badge { display: inline-block; background-color: #1e1e1e; padding: 5px 12px; border-radius: 4px; margin-left: 10px; border: 1px solid #333; }
+        .date-badge span { color: #fff; font-weight: bold; margin-left: 5px; }
+
+        .tab-content { display: none; max-width: 1200px; margin: 0 auto; }
+        .tab-content.active { display: block; }
+
+        #heatmap-container { width: 100%; height: 50vh; margin-bottom: 20px; }
         
-        table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; }
+        /* 💡 새로 추가된 나스닥 전체 지수 요약바 스타일 */
+        #ndx-summary { background-color: #1e1e1e; padding: 15px 25px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .summary-title { font-size: 18px; color: #aaaaaa; font-weight: bold; }
+        .summary-data { font-size: 22px; font-weight: bold; }
+        .summary-data span { margin-left: 15px; }
+
+        h2 { font-size: 20px; margin-bottom: 15px; color: #e0e0e0; }
+        table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 50px; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #2d2d2d; }
-        
-        /* 정렬 가능한 헤더 스타일 */
         th { background-color: #2a2a2a; color: #aaaaaa; font-weight: bold; cursor: pointer; user-select: none; }
         th:hover { background-color: #333333; color: white; }
         th.sort-asc::after { content: ' ▲'; font-size: 10px; }
         th.sort-desc::after { content: ' ▼'; font-size: 10px; }
-        
-        /* 테이블 내부 숫자 색상 제어 */
         .pos { color: #00b853; font-weight: bold; }
         .neg { color: #f03b20; font-weight: bold; }
         tr:hover { background-color: #252525; }
@@ -36,162 +45,195 @@
 
     <div id="loading">데이터를 불러오는 중입니다...</div>
     
-    <div id="heatmap-container"></div>
-    
-    <div class="table-section">
+    <div class="tab-container">
+        <button class="tab-button active" onclick="switchTab('tab-contribution')">📈 지수 기여도 히트맵</button>
+        <button class="tab-button" onclick="switchTab('tab-flow')">🌊 기관 자금 흐름 (보유 주식 수)</button>
+    </div>
+
+    <div id="date-info-bar">데이터 동기화 중...</div>
+
+    <div id="tab-contribution" class="tab-content active">
+        <div id="heatmap-container"></div>
+        
+        <div id="ndx-summary" style="display: none;"></div>
+
         <h2>종목별 상세 데이터 정보</h2>
         <table id="stock-table">
             <thead>
                 <tr>
-                    <th onclick="sortTable('Ticker')">티커</th>
-                    <th onclick="sortTable('Current Price ($)')">주가</th>
-                    <th onclick="sortTable('Change (%)')">변동률</th>
-                    <th onclick="sortTable('Market Cap ($)')">시가총액</th>
-                    <th onclick="sortTable('Point Contribution')">지수 기여도</th>
+                    <th onclick="sortTable('Ticker', 'contribution')">티커</th>
+                    <th onclick="sortTable('Current Price ($)', 'contribution')">주가</th>
+                    <th onclick="sortTable('Change (%)', 'contribution')">변동률</th>
+                    <th onclick="sortTable('Market Cap ($)', 'contribution')">시가총액</th>
+                    <th onclick="sortTable('Point Contribution', 'contribution')">지수 기여도</th>
                 </tr>
             </thead>
-            <tbody id="table-body">
-                </tbody>
+            <tbody id="table-body-contribution"></tbody>
+        </table>
+    </div>
+
+    <div id="tab-flow" class="tab-content">
+        <h2>ETF 보유 주식 수 변동 (In-Kind 흐름)</h2>
+        <table id="flow-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTable('Ticker', 'flow')">티커</th>
+                    <th onclick="sortTable('Shares Held', 'flow')">보유 주식 수</th>
+                    <th onclick="sortTable('Shares Change', 'flow')">전일 대비 증감량</th>
+                    <th onclick="sortTable('Shares Change (%)', 'flow')">증감률 (%)</th>
+                </tr>
+            </thead>
+            <tbody id="table-body-flow"></tbody>
         </table>
     </div>
 
     <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if (tabId === 'tab-contribution' && myChart) myChart.resize();
+        }
+
         const chartDom = document.getElementById('heatmap-container');
         const myChart = echarts.init(chartDom);
         
-        // 🚨 본인의 GitHub 레이티스트 JSON Raw URL을 입력하세요.
-        const dataUrl = 'https://raw.githubusercontent.com/GOATxx/NDX-Tracker/refs/heads/main/data/latest.json';
+        // 🚨 본인의 GitHub 레이티스트 JSON Raw URL 유지
+        const dataUrl = 'https://raw.githubusercontent.com/여기를/본인/주소로/바꾸세요/main/data/latest.json';
 
-        let globalStockData = []; // 정렬 기능을 위해 데이터를 전역 변수에 보관합니다.
+        let globalStockData = []; 
         let currentSortColumn = '';
         let isAscending = true;
 
-        // 💡 시가총액 단위를 가변적으로 변환하는 마법의 함수
         function formatMarketCap(mcap) {
             if (!mcap || mcap === 0) return 'N/A';
-            if (mcap >= 1000000000000) {
-                return `$${(mcap / 1000000000000).toFixed(2)} T`; // 1조 달러 이상은 Trillion
-            } else {
-                return `$${(mcap / 1000000000).toFixed(2)} B`;    // 1조 달러 미만은 Billion
-            }
+            return mcap >= 1000000000000 ? `$${(mcap / 1000000000000).toFixed(2)} T` : `$${(mcap / 1000000000).toFixed(2)} B`;
         }
 
-        // 💡 변동률의 크기에 따라 색상의 농도(rgba 투명도)를 계산하는 함수
         function getHeatmapColor(changePercent, isPositive) {
-            const absChange = Math.abs(changePercent);
-            // 변동률이 4% 이상이면 가장 진한 색(투명도 1.0), 0%에 가까우면 연한 색(최소 투명도 0.25)
-            let alpha = 0.25 + (absChange / 4) * 0.75;
+            let alpha = 0.25 + (Math.abs(changePercent) / 4) * 0.75;
             if (alpha > 1) alpha = 1.0; 
-
-            return isPositive 
-                ? `rgba(0, 184, 83, ${alpha})`  // 상승 초록색 계열
-                : `rgba(240, 59, 32, ${alpha})`; // 하락 빨간색 계열
+            return isPositive ? `rgba(0, 184, 83, ${alpha})` : `rgba(240, 59, 32, ${alpha})`;
         }
 
-        // 인터넷에서 데이터를 읽어오는 로직
         fetch(dataUrl)
-            .then(response => {
-                if (!response.ok) throw new Error('데이터 서빙 실패');
-                return response.json();
-            })
-            .then(jsonData => {
+            .then(res => res.ok ? res.json() : Promise.reject('데이터 서빙 실패'))
+            .then(jsonResponse => {
                 document.getElementById('loading').style.display = 'none';
                 
-                // 데이터 정제
-                globalStockData = jsonData.filter(item => item['Point Contribution'] !== undefined && item['Point Contribution'] !== null);
+                const metadata = jsonResponse.metadata || {};
+                const dataList = jsonResponse.data || jsonResponse;
 
-                // 1. 히트맵 그리기
+                // 1. 날짜 뱃지 업데이트
+                if (metadata.market_date && metadata.invesco_date) {
+                    document.getElementById('date-info-bar').innerHTML = `
+                        <div class="date-badge">🇺🇸 미국 시장 기준일 <span>${metadata.market_date}</span></div>
+                        <div class="date-badge">🏦 Invesco 기준일 <span>${metadata.invesco_date}</span></div>
+                    `;
+                }
+
+                // 💡 2. 나스닥 전체 지수 요약 위젯 렌더링
+                if (metadata.ndx_current_pt) {
+                    const ndxPt = metadata.ndx_current_pt;
+                    const ndxChg = metadata.ndx_point_change;
+                    const ndxPct = metadata.ndx_percent_change;
+                    
+                    const isPos = ndxChg >= 0;
+                    const sign = isPos ? '+' : '';
+                    const colorClass = isPos ? 'pos' : 'neg';
+
+                    const summaryDiv = document.getElementById('ndx-summary');
+                    summaryDiv.style.display = 'flex';
+                    summaryDiv.innerHTML = `
+                        <div class="summary-title">NASDAQ 100 Index</div>
+                        <div class="summary-data">
+                            <span style="color: white;">${ndxPt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            <span class="${colorClass}">${sign}${ndxChg.toFixed(2)} pt</span>
+                            <span class="${colorClass}">(${sign}${ndxPct.toFixed(2)}%)</span>
+                        </div>
+                    `;
+                }
+
+                globalStockData = dataList.filter(item => item['Point Contribution'] != null);
+                
                 renderHeatmap(globalStockData);
-                
-                // 2. 하단 표 그리기 (처음에는 기본 백엔드 정렬 순서대로)
-                renderTable(globalStockData);
+                renderTableContribution(globalStockData);
+                renderTableFlow(globalStockData);
             })
-            .catch(error => {
-                document.getElementById('loading').innerText = '에러 발생: ' + error.message;
-                console.error(error);
+            .catch(err => {
+                document.getElementById('loading').innerText = '에러 발생: ' + err;
             });
 
-        // 히트맵 렌더링 함수
         function renderHeatmap(data) {
-            const treemapData = data.map(item => {
-                const isPositive = item['Point Contribution'] >= 0;
-                const change = item['Change (%)'];
-                
-                return {
-                    name: item.Ticker,
-                    value: Math.abs(item['Point Contribution']), 
-                    itemStyle: {
-                        color: getHeatmapColor(change, isPositive) // 💡 등락률 연동 색상 농도 적용
-                    },
-                    extraInfo: {
-                        change: change,
-                        point: item['Point Contribution'],
-                        mcap: item['Market Cap ($)']
-                    }
-                };
-            });
+            const treemapData = data.map(item => ({
+                name: item.Ticker,
+                value: Math.abs(item['Point Contribution']), 
+                itemStyle: { color: getHeatmapColor(item['Change (%)'], item['Point Contribution'] >= 0) },
+                extraInfo: { change: item['Change (%)'], point: item['Point Contribution'], mcap: item['Market Cap ($)'] }
+            }));
 
-            const option = {
+            myChart.setOption({
                 tooltip: {
-                    formatter: function (info) {
-                        const d = info.data;
-                        if (!d || !d.extraInfo) return '';
-                        return `<div style="font-size: 16px; font-weight: bold; color:#121212;">${d.name}</div>
-                                <span style="color:#121212;">등락률: ${d.extraInfo.change > 0 ? '+' : ''}${d.extraInfo.change}%</span><br/>
-                                <span style="color:#121212;">기여도: ${d.extraInfo.point > 0 ? '+' : ''}${d.extraInfo.point} pt</span><br/>
-                                <span style="color:#121212;">시가총액: ${formatMarketCap(d.extraInfo.mcap)}</span>`; // 💡 가변 단위 적용
+                    formatter: d => {
+                        if (!d.data || !d.data.extraInfo) return '';
+                        const ext = d.data.extraInfo;
+                        return `<div style="font-size: 16px; font-weight: bold; color:#121212;">${d.data.name}</div>
+                                <span style="color:#121212;">등락률: ${ext.change > 0 ? '+' : ''}${ext.change}%</span><br/>
+                                <span style="color:#121212;">기여도: ${ext.point > 0 ? '+' : ''}${ext.point} pt</span><br/>
+                                <span style="color:#121212;">시가총액: ${formatMarketCap(ext.mcap)}</span>`;
                     }
                 },
                 series: [{
-                    type: 'treemap',
-                    data: treemapData,
-                    roam: false, nodeClick: false, breadcrumb: { show: false },
-                    label: {
-                        show: true,
-                        formatter: function(info) {
-                            return `${info.name}\n${info.data.extraInfo.change > 0 ? '+' : ''}${info.data.extraInfo.change}%\n${info.data.extraInfo.point > 0 ? '+' : ''}${info.data.extraInfo.point}pt`;
-                        },
-                        fontSize: 13, color: '#ffffff'
-                    },
+                    type: 'treemap', data: treemapData, roam: false, nodeClick: false, breadcrumb: { show: false },
+                    label: { show: true, formatter: i => `${i.name}\n${i.data.extraInfo.change > 0 ? '+' : ''}${i.data.extraInfo.change}%\n${i.data.extraInfo.point > 0 ? '+' : ''}${i.data.extraInfo.point}pt`, fontSize: 13, color: '#ffffff' },
                     itemStyle: { borderColor: '#121212', borderWidth: 2 }
                 }]
-            };
-            myChart.setOption(option);
-        }
-
-        // 표(Table) 렌더링 함수
-        function renderTable(data) {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = ''; // 기존 내용을 비웁니다.
-
-            data.forEach(item => {
-                const tr = document.createElement('tr');
-                const isPos = item['Point Contribution'] >= 0;
-                const changeClass = isPos ? 'pos' : 'neg';
-                const sign = isPos ? '+' : '';
-
-                tr.innerHTML = `
-                    <td>${item.Ticker}</td>
-                    <td>$${item['Current Price ($)'].toLocaleString()}</td>
-                    <td class="${changeClass}">${sign}${item['Change (%)']}%</td>
-                    <td>${formatMarketCap(item['Market Cap ($)'])}</td>
-                    <td class="${changeClass}">${sign}${item['Point Contribution']} pt</td>
-                `;
-                tbody.appendChild(tr);
             });
         }
 
-        // 💡 표 정렬 이벤트 처리 함수 (Vanilla JS 역동적 정렬)
-        function sortTable(columnName) {
-            if (currentSortColumn === columnName) {
-                isAscending = !isAscending; // 동일한 열을 다시 누르면 오름차순/내림차순 토글
-            } else {
-                currentSortColumn = columnName;
-                isAscending = true; // 새로운 열을 누르면 기본 오름차순 정렬
-            }
+        function renderTableContribution(data) {
+            const tbody = document.getElementById('table-body-contribution');
+            tbody.innerHTML = ''; 
+            data.forEach(item => {
+                const isPos = item['Point Contribution'] >= 0;
+                const changeClass = isPos ? 'pos' : 'neg';
+                const sign = isPos ? '+' : '';
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.Ticker}</td>
+                        <td>$${item['Current Price ($)'].toLocaleString()}</td>
+                        <td class="${changeClass}">${sign}${item['Change (%)']}%</td>
+                        <td>${formatMarketCap(item['Market Cap ($)'])}</td>
+                        <td class="${changeClass}">${sign}${item['Point Contribution']} pt</td>
+                    </tr>`;
+            });
+        }
 
-            // 헤더 화살표 표시 업데이트
-            const headers = document.querySelectorAll('th');
+        function renderTableFlow(data) {
+            const tbody = document.getElementById('table-body-flow');
+            tbody.innerHTML = ''; 
+            data.forEach(item => {
+                let changeClass = '';
+                let sign = '';
+                if (item['Shares Change'] > 0) { changeClass = 'pos'; sign = '+'; }
+                else if (item['Shares Change'] < 0) { changeClass = 'neg'; sign = ''; }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.Ticker}</td>
+                        <td>${item['Shares Held'].toLocaleString()} 주</td>
+                        <td class="${changeClass}">${sign}${item['Shares Change'].toLocaleString()}</td>
+                        <td class="${changeClass}">${sign}${item['Shares Change (%)']}%</td>
+                    </tr>`;
+            });
+        }
+
+        function sortTable(columnName, tableType) {
+            if (currentSortColumn === columnName) isAscending = !isAscending;
+            else { currentSortColumn = columnName; isAscending = true; }
+
+            const headers = document.querySelectorAll(`#tab-${tableType} th`);
             headers.forEach(th => {
                 th.classList.remove('sort-asc', 'sort-desc');
                 if (th.innerText.replace(' ▲','').replace(' ▼','') === getDisplayName(columnName)) {
@@ -199,30 +241,19 @@
                 }
             });
 
-            // 데이터 정렬 로직
             const sortedData = [...globalStockData].sort((a, b) => {
-                let valA = a[columnName];
-                let valB = b[columnName];
-
-                // 문자열(티커) 정렬 대응
-                if (typeof valA === 'string') {
-                    return isAscending ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                }
-                
-                // 숫자형 정렬 대응
+                let valA = a[columnName] || 0; let valB = b[columnName] || 0;
+                if (typeof valA === 'string') return isAscending ? valA.localeCompare(valB) : valB.localeCompare(valA);
                 return isAscending ? valA - valB : valB - valA;
             });
 
-            renderTable(sortedData); // 정렬된 데이터로 표만 다시 그리기
+            if (tableType === 'contribution') renderTableContribution(sortedData);
+            else if (tableType === 'flow') renderTableFlow(sortedData);
         }
 
         function getDisplayName(col) {
-            if (col === 'Ticker') return '티커';
-            if (col === 'Current Price ($)') return '주가';
-            if (col === 'Change (%)') return '변동률';
-            if (col === 'Market Cap ($)') return '시가총액';
-            if (col === 'Point Contribution') return '지수 기여도';
-            return '';
+            const names = { 'Ticker':'티커', 'Current Price ($)':'주가', 'Change (%)':'변동률', 'Market Cap ($)':'시가총액', 'Point Contribution':'지수 기여도', 'Shares Held':'보유 주식 수', 'Shares Change':'전일 대비 증감량', 'Shares Change (%)':'증감률 (%)' };
+            return names[col] || '';
         }
 
         window.addEventListener('resize', () => myChart.resize());
