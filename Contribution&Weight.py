@@ -183,6 +183,11 @@ if stock_data:
     file_path = f'data/{today_str}.json'
     latest_path = 'data/latest.json'
     
+# ==========================================
+# (기존 코드) 4. JSON 저장 (메타데이터 객체 구조 적용)
+# ==========================================
+# ... 기존 저장 코드 생략 ...
+    
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(final_output, f, ensure_ascii=False, indent=4)
         
@@ -190,3 +195,25 @@ if stock_data:
         json.dump(final_output, f, ensure_ascii=False, indent=4)
     
     print(f"\n✅ 완료! 나스닥 전체 지수 정보가 포함된 최종 JSON이 생성되었습니다.")
+
+# ==========================================
+# 💡 [새로 추가할 부분] 5. 웹사이트용 '메뉴판(날짜 목록)' 만들기
+# ==========================================
+    print("\n[추가작업] 웹사이트에서 읽어갈 날짜 목록(메뉴판)을 생성합니다...")
+    
+    # data 폴더 안의 모든 파일 중 이름이 .json으로 끝나는 파일들만 찾습니다.
+    all_files = os.listdir('data')
+    date_files = [
+        f.replace('.json', '') for f in all_files 
+        if f.endswith('.json') and f not in ['latest.json', 'available_dates.json']
+    ]
+    
+    # 최신 날짜가 맨 위로 오도록 내림차순 정렬
+    date_files.sort(reverse=True)
+    
+    # available_dates.json 이라는 이름으로 저장
+    dates_path = 'data/available_dates.json'
+    with open(dates_path, 'w', encoding='utf-8') as f:
+        json.dump(date_files, f, ensure_ascii=False, indent=4)
+        
+    print(f"✅ 총 {len(date_files)}개의 날짜 기록이 available_dates.json에 저장되었습니다.")
