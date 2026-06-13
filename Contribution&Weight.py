@@ -166,7 +166,6 @@ for index, row in weights_df.iterrows():
 # ==========================================
 if stock_data:
     os.makedirs('data', exist_ok=True)
-    today_str = datetime.now().strftime('%Y-%m-%d')
     
     # 💡 [핵심] JSON 메타데이터에 나스닥 지수 요약 정보를 추가합니다.
     final_output = {
@@ -180,7 +179,7 @@ if stock_data:
         "data": stock_data
     }
     
-    file_path = f'data/{today_str}.json'
+    file_path = f'data/{market_date}.json'
     latest_path = 'data/latest.json'
     
 # ==========================================
