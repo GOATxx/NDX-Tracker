@@ -67,13 +67,13 @@
             <span class="date-picker-label">조회 일자:</span>
             <input type="date" id="date-picker" onchange="handleDateChange(this.value)" disabled>
         </div>
-        <div id="date-info-bar">데이터 동기화 중...</div>
+        <div id="date-info-bar"></div>
     </div>
 
     <div id="tab-contribution" class="tab-content active">
         <div id="heatmap-container"></div>
         <div id="ndx-summary" style="display: none;"></div>
-        <h2>종목별 상세 데이터 정보</h2>
+        <h2>기업별 상세 데이터 정보</h2>
         <table id="stock-table">
             <thead>
                 <tr>
@@ -89,7 +89,7 @@
     </div>
 
     <div id="tab-flow" class="tab-content">
-        <h2>QQQ ETF 종목 비중 (Doughnut Chart)</h2>
+        <h2>QQQ ETF 기업 비중 (Doughnut Chart)</h2>
         <div id="weight-chart-container"></div>
         
         <h2>ETF 보유 주식 수 및 비중 상세 표</h2>
@@ -109,7 +109,7 @@
 
     <script>
         // 🚨 본인의 GitHub 레이티스트 JSON Base URL 유지
-        const baseUrl = 'https://raw.githubusercontent.com/여기를/본인/주소로/바꾸세요/main/data/';
+        const baseUrl = 'https://raw.githubusercontent.com/GOATxx/NDX-Tracker/refs/heads/main/data/';
 
         const chartDom = document.getElementById('heatmap-container');
         const myChart = echarts.init(chartDom);
@@ -302,7 +302,7 @@
             weightChart.setOption({
                 graphic: [{
                     type: 'image', id: 'logo', left: 'center', top: 'center', z: -10, bounding: 'raw',
-                    style: { image: 'https://images.squarespace-cdn.com/content/v1/56c7028f8a65e28a5b28d495/1614742468767-D8M7O0O3N9H2R9D9X6W5/QQQ_logo.png', width: 120, height: 60, opacity: 0.8 }
+                    style: { image: 'https://imageio.forbes.com/specials-images/imageserve/65d60b719caf7ca7562bcb24/0x0.png?format=png&crop=500,500,x0,y0,safe&width=300', width: 200, height: 200, opacity: 1 }
                 }],
                 tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
                 series: [{
