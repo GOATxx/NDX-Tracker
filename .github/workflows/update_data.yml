@@ -1,0 +1,45 @@
+name: Daily NASDAQ Data Update
+
+# 1. 언제 실행할 것인가?
+on:
+  schedule:
+    # 매주 화~토요일 오전 8시 (한국 시간 기준) / UTC 기준 월~금 밤 11시
+    # 미국 장 마감 후 yfinance와 Invesco 데이터가 충분히 갱신되는 가장 안전한 시간입니다.
+    - cron: '0 23 * * 1-5'
+  
+  # 내가 원할 때 언제든 '수동'으로 버튼을 눌러 실행할 수 있게 해주는 옵션
+  workflow_dispatch: 
+
+# 2. 로봇이 내 저장소에 파일을 수정하고 저장할 수 있도록 권한 부여
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest # 가상의 리눅스 컴퓨터를 한 대 빌려옵니다.
+    
+    steps:
+      - name: 내 저장소 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: 파이썬 설치하기
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 필요한 라이브러리 설치 (requirements.txt 읽기)
+        run: |
+          pip install -r requirements.txt
+
+      - name: 🚀 백엔드 파이썬 스크립트 실행! (데이터 수집 및 JSON 생성)
+        # 🚨 본인의 파이썬 파일 이름이 다르면 아래 줄을 수정하세요! (예: python Contribution.py)
+        run: python Contribution&Weight.py
+
+      - name: 새로 만들어진 JSON 파일을 GitHub에 덮어쓰고 저장하기
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git add data/
+          # [skip ci]는 Vercel이 데이터만 바뀌었는데 웹사이트 전체를 재설치하는 것을 막아줍니다.
+          git commit -m "Auto-update Nasdaq data [skip ci]" || echo "업데이트할 내용이 없습니다."
+          git push
