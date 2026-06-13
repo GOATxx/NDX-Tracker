@@ -15,8 +15,13 @@
         .tab-button.active { color: #00b853; border-bottom: 3px solid #00b853; }
         
         #top-controls { max-width: 1200px; margin: 0 auto 20px auto; display: flex; justify-content: space-between; align-items: center; }
-        #date-selector { padding: 8px 15px; background-color: #1e1e1e; color: #00b853; border: 1px solid #333; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; outline: none; }
-        #date-selector:hover { border-color: #00b853; }
+        
+        /* 💡 드롭다운(select) 대신 달력(input type=date)에 맞는 디자인으로 수정 */
+        .date-picker-wrapper { display: flex; align-items: center; gap: 10px; }
+        .date-picker-label { font-weight: bold; color: #aaaaaa; }
+        #date-picker { padding: 8px 15px; background-color: #1e1e1e; color: #00b853; border: 1px solid #333; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; outline: none; }
+        #date-picker::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        #date-picker:hover { border-color: #00b853; }
         
         #date-info-bar { text-align: right; font-size: 14px; color: #888; }
         .date-badge { display: inline-block; background-color: #1e1e1e; padding: 5px 12px; border-radius: 4px; margin-left: 10px; border: 1px solid #333; }
@@ -54,19 +59,21 @@
     
     <div class="tab-container">
         <button class="tab-button active" onclick="switchTab('tab-contribution')">📈 지수 기여도 히트맵</button>
-        <button class="tab-button" onclick="switchTab('tab-flow')">🌊 QQQ 기업별 비중</button>
+        <button class="tab-button" onclick="switchTab('tab-flow')">🌊 기관 자금 흐름 및 비중</button>
     </div>
 
     <div id="top-controls">
-        <select id="date-selector" onchange="handleDateChange(this.value)">
-            <option value="">데이터 목록 로딩 중...</option>
-        </select>
+        <div class="date-picker-wrapper">
+            <span class="date-picker-label">조회 일자:</span>
+            <input type="date" id="date-picker" onchange="handleDateChange(this.value)" disabled>
+        </div>
+        <div id="date-info-bar">데이터 동기화 중...</div>
     </div>
 
     <div id="tab-contribution" class="tab-content active">
         <div id="heatmap-container"></div>
         <div id="ndx-summary" style="display: none;"></div>
-        <h2>기업별 상세 데이터 정보</h2>
+        <h2>종목별 상세 데이터 정보</h2>
         <table id="stock-table">
             <thead>
                 <tr>
@@ -82,10 +89,10 @@
     </div>
 
     <div id="tab-flow" class="tab-content">
-        <h2>QQQ ETF 기업 비중</h2>
+        <h2>QQQ ETF 종목 비중 (Doughnut Chart)</h2>
         <div id="weight-chart-container"></div>
         
-        <h2>QQQ 보유 주식 수 및 비중 상세 표</h2>
+        <h2>ETF 보유 주식 수 및 비중 상세 표</h2>
         <table id="flow-table">
             <thead>
                 <tr>
@@ -102,7 +109,7 @@
 
     <script>
         // 🚨 본인의 GitHub 레이티스트 JSON Base URL 유지
-        const baseUrl = 'https://raw.githubusercontent.com/GOATxx/NDX-Tracker/refs/heads/main/data/';
+        const baseUrl = 'https://raw.githubusercontent.com/여기를/본인/주소로/바꾸세요/main/data/';
 
         const chartDom = document.getElementById('heatmap-container');
         const myChart = echarts.init(chartDom);
@@ -113,30 +120,59 @@
         let globalStockData = []; 
         let currentSortColumn = '';
         let isAscending = true;
+        
+        // 💡 창고에 있는 날짜들을 기억해 둘 전역 변수
+        let availableDatesList = [];
 
         document.getElementById('loading').style.display = 'block';
         fetch(baseUrl + 'available_dates.json')
             .then(res => res.json())
             .then(dates => {
-                const select = document.getElementById('date-selector');
-                select.innerHTML = ''; 
-                dates.forEach(date => {
-                    const option = document.createElement('option');
-                    option.value = date;
-                    option.text = `📅 ${date} 데이터 보기`;
-                    select.appendChild(option);
-                });
-                if (dates.length > 0) loadData(dates[0]);
-                else document.getElementById('loading').innerText = '저장된 날짜 데이터가 없습니다.';
+                availableDatesList = dates; // 날짜 목록 기억
+                const picker = document.getElementById('date-picker');
+                
+                if (dates.length > 0) {
+                    picker.disabled = false; // 달력 활성화
+                    
+                    // 달력에서 선택할 수 있는 최대/최소 날짜를 자동으로 제한합니다.
+                    picker.max = dates[0];                  // 가장 최신 날짜
+                    picker.min = dates[dates.length - 1];   // 가장 오래된 날짜
+                    
+                    // 초기 화면은 가장 최신 날짜로 세팅
+                    picker.value = dates[0];
+                    loadData(dates[0]);
+                } else {
+                    document.getElementById('loading').innerText = '저장된 날짜 데이터가 없습니다.';
+                }
             })
             .catch(err => {
                 console.error("메뉴판 로딩 실패. latest.json 직접 로딩 시도", err);
                 loadData('latest');
             });
 
+        // 💡 [핵심] 스마트 휴장일 보정 알고리즘
         function handleDateChange(selectedDate) {
-            document.getElementById('loading').style.display = 'block';
-            loadData(selectedDate); 
+            if (!selectedDate) return;
+
+            // 1. 선택한 날짜의 데이터가 창고에 정확히 있는지 확인합니다.
+            if (availableDatesList.includes(selectedDate)) {
+                document.getElementById('loading').style.display = 'block';
+                loadData(selectedDate);
+            } else {
+                // 2. 만약 없다면 (주말, 휴장일 등) 가장 가까운 '이전 거래일'을 찾습니다.
+                const closestPastDate = availableDatesList.find(d => d < selectedDate);
+                
+                if (closestPastDate) {
+                    alert(`선택하신 ${selectedDate}은(는) 휴장일 또는 데이터가 없는 날입니다.\n가장 가까운 이전 거래일인 [${closestPastDate}] 데이터를 불러옵니다.`);
+                    document.getElementById('date-picker').value = closestPastDate; // 달력 텍스트를 보정된 날짜로 변경
+                    document.getElementById('loading').style.display = 'block';
+                    loadData(closestPastDate);
+                } else {
+                    alert('해당 날짜 이전의 데이터가 존재하지 않습니다.');
+                    // 원래 보던 최신 날짜로 원복
+                    document.getElementById('date-picker').value = availableDatesList[0];
+                }
+            }
         }
 
         function loadData(dateString) {
@@ -191,7 +227,8 @@
                     renderTableFlow(globalStockData);
                 })
                 .catch(err => {
-                    document.getElementById('loading').innerText = '에러 발생: 해당 날짜의 데이터를 찾을 수 없습니다.';
+                    document.getElementById('loading').style.display = 'none';
+                    alert('에러 발생: 해당 날짜의 데이터를 찾을 수 없습니다.');
                 });
         }
 
@@ -235,14 +272,13 @@
 
             const sortedData = [...data].sort((a, b) => (b['Weight (%)'] || 0) - (a['Weight (%)'] || 0));
 
-            // 💡 [핵심] 데이터를 넣을 때 2% 미만은 텍스트와 지시선을 아예 빼버립니다.
             sortedData.forEach(item => {
                 const w = item['Weight (%)'];
                 if (w && w > 0.5) {
                     let dataItem = { name: item.Ticker, value: w };
                     if (w < 2) {
-                        dataItem.label = { show: false };      // 라벨 텍스트 숨기기
-                        dataItem.labelLine = { show: false };  // 라벨 지시선(꼬리표) 완전 삭제
+                        dataItem.label = { show: false };      
+                        dataItem.labelLine = { show: false };  
                     }
                     mainData.push(dataItem);
                 } else if (w && w <= 0.5) {
@@ -265,50 +301,17 @@
 
             weightChart.setOption({
                 graphic: [{
-                    type: 'image',
-                    id: 'logo',
-                    left: 'center', // 가로 중앙
-                    top: 'center', // 세로 중앙
-                    z: -10, // 그래프 뒤에 위치
-                    bounding: 'raw',
-                    style: {
-                        image: 'https://imageio.forbes.com/specials-images/imageserve/65d60b719caf7ca7562bcb24/0x0.png',
-                        width: 240, // 로고 너비 조절
-                        height: 240, // 로고 높이 조절
-                        opacity: 1 // 약간의 투명도 적용
-                    }
+                    type: 'image', id: 'logo', left: 'center', top: 'center', z: -10, bounding: 'raw',
+                    style: { image: 'https://images.squarespace-cdn.com/content/v1/56c7028f8a65e28a5b28d495/1614742468767-D8M7O0O3N9H2R9D9X6W5/QQQ_logo.png', width: 120, height: 60, opacity: 0.8 }
                 }],
-                tooltip: {
-                    trigger: 'item',
-                    formatter: '{b}: {c}%'
-                },
-                series: [
-                    {
-                        name: 'QQQ 비중',
-                        type: 'pie',
-                        radius: ['50%', '80%'],
-                        avoidLabelOverlap: true,
-                        itemStyle: {
-                            borderRadius: 6,
-                            borderColor: '#1a1a1a',
-                            borderWidth: 2
-                        },
-                        // 기본 포맷터는 '{b}\n{c}%'로 깔끔하게 원복했습니다.
-                        label: {
-                            show: true,
-                            position: 'outside',
-                            color: '#e0e0e0',
-                            fontSize: 12,
-                            formatter: '{b}\n{c}%'
-                        },
-                        labelLine: {
-                            show: true,
-                            length: 15,
-                            length2: 10
-                        },
-                        data: mainData
-                    }
-                ]
+                tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
+                series: [{
+                    name: 'QQQ 비중', type: 'pie', radius: ['50%', '80%'], avoidLabelOverlap: true,
+                    itemStyle: { borderRadius: 6, borderColor: '#1a1a1a', borderWidth: 2 },
+                    label: { show: true, position: 'outside', color: '#e0e0e0', fontSize: 12, formatter: '{b}\n{c}%' },
+                    labelLine: { show: true, length: 15, length2: 10 },
+                    data: mainData
+                }]
             });
         }
 
@@ -328,7 +331,6 @@
                 let changeClass = ''; let sign = '';
                 if (item['Shares Change'] > 0) { changeClass = 'pos'; sign = '+'; } else if (item['Shares Change'] < 0) { changeClass = 'neg'; sign = ''; }
                 const weight = item['Weight (%)'] ? item['Weight (%)'].toFixed(2) + '%' : 'N/A';
-                
                 tbody.innerHTML += `<tr><td>${item.Ticker}</td><td>${item['Shares Held'].toLocaleString()} 주</td><td class="${changeClass}">${sign}${item['Shares Change'].toLocaleString()}</td><td class="${changeClass}">${sign}${item['Shares Change (%)']}%</td><td style="font-weight:bold; color:#00b853;">${weight}</td></tr>`;
             });
         }
