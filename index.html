@@ -103,7 +103,7 @@
 
     <script>
         // 🚨 본인의 GitHub 레이티스트 JSON Base URL 유지
-        const baseUrl = 'https://raw.githubusercontent.com/GOATxx/NDX-Tracker/refs/heads/main/data/';
+        const baseUrl = 'https://raw.githubusercontent.com/여기를/본인/주소로/바꾸세요/main/data/';
 
         const chartDom = document.getElementById('heatmap-container');
         const myChart = echarts.init(chartDom);
@@ -236,38 +236,47 @@
 
             const sortedData = [...data].sort((a, b) => (b['Weight (%)'] || 0) - (a['Weight (%)'] || 0));
 
+            // 💡 [핵심] 데이터를 넣을 때 2% 미만은 텍스트와 지시선을 아예 빼버립니다.
             sortedData.forEach(item => {
                 const w = item['Weight (%)'];
                 if (w && w > 0.5) {
-                    mainData.push({ name: item.Ticker, value: w });
+                    let dataItem = { name: item.Ticker, value: w };
+                    if (w < 2) {
+                        dataItem.label = { show: false };      // 라벨 텍스트 숨기기
+                        dataItem.labelLine = { show: false };  // 라벨 지시선(꼬리표) 완전 삭제
+                    }
+                    mainData.push(dataItem);
                 } else if (w && w <= 0.5) {
                     othersWeight += w;
                 }
             });
 
             if (othersWeight > 0) {
-                mainData.push({ 
+                let othersItem = { 
                     name: '기타 (0.5% 이하)', 
                     value: Number(othersWeight.toFixed(2)),
                     itemStyle: { color: '#444444' }
-                });
+                };
+                if (othersWeight < 2) {
+                    othersItem.label = { show: false };
+                    othersItem.labelLine = { show: false };
+                }
+                mainData.push(othersItem);
             }
 
             weightChart.setOption({
-                // 💡 [추가] 도넛 중앙에 로고 삽입 (graphic 구성요소 활용)
                 graphic: [{
                     type: 'image',
                     id: 'logo',
-                    left: 'center', // 가로 중앙
-                    top: 'center',  // 세로 중앙
-                    z: -10,         // 그래프 뒤에 위치
+                    left: 'center',
+                    top: 'center',
+                    z: -10,
                     bounding: 'raw',
                     style: {
-                        // 배경이 투명한 Invesco QQQ 로고 URL (Invesco 공식 미디어 자산 사용)
                         image: 'https://images.squarespace-cdn.com/content/v1/56c7028f8a65e28a5b28d495/1614742468767-D8M7O0O3N9H2R9D9X6W5/QQQ_logo.png',
-                        width: 120, // 로고 너비 조절
-                        height: 60, // 로고 높이 조절
-                        opacity: 0.8 // 약간의 투명도 적용
+                        width: 120,
+                        height: 60,
+                        opacity: 0.8
                     }
                 }],
                 tooltip: {
@@ -278,34 +287,25 @@
                     {
                         name: 'QQQ 비중',
                         type: 'pie',
-                        radius: ['50%', '80%'], // 💡 도넛 안쪽/바깥쪽 반지름 비율 조정
+                        radius: ['50%', '80%'],
                         avoidLabelOverlap: true,
                         itemStyle: {
                             borderRadius: 6,
                             borderColor: '#1a1a1a',
                             borderWidth: 2
                         },
+                        // 기본 포맷터는 '{b}\n{c}%'로 깔끔하게 원복했습니다.
                         label: {
                             show: true,
                             position: 'outside',
                             color: '#e0e0e0',
                             fontSize: 12,
-                            // 💡 [수정] 가중치 2% 미만은 텍스트 숨기기
-                            formatter: function(params) {
-                                // params.value는 비중(%) 숫자입니다.
-                                if (params.value < 2) {
-                                    return ''; // 빈 문자열을 반환하여 라벨을 숨깁니다.
-                                }
-                                // 2% 이상만 티커명과 비중 표시
-                                return params.name + '\n' + params.value + '%';
-                            }
+                            formatter: '{b}\n{c}%'
                         },
-                        // 라벨과 그래프를 잇는 선 설정
                         labelLine: {
                             show: true,
                             length: 15,
-                            length2: 10,
-                            // 💡 라벨이 숨겨지면 선도 자동으로 숨겨집니다.
+                            length2: 10
                         },
                         data: mainData
                     }
