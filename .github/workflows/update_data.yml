@@ -13,7 +13,11 @@ on:
 # 2. 로봇이 내 저장소에 파일을 수정하고 저장할 수 있도록 권한 부여
 permissions:
   contents: write
-
+  
+  # 💡 [핵심 추가] GitHub 서버 엔진 강제 업그레이드 설정
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  
 jobs:
   update-data:
     runs-on: ubuntu-latest # 가상의 리눅스 컴퓨터를 한 대 빌려옵니다.
@@ -33,7 +37,7 @@ jobs:
 
       - name: 🚀 백엔드 파이썬 스크립트 실행! (데이터 수집 및 JSON 생성)
         # 🚨 본인의 파이썬 파일 이름이 다르면 아래 줄을 수정하세요! (예: python Contribution.py)
-        run: python Contribution&Weight.py
+        run: python ContributionWeight.py
 
       - name: 새로 만들어진 JSON 파일을 GitHub에 덮어쓰고 저장하기
         run: |
