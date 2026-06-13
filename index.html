@@ -23,11 +23,15 @@
 
         #heatmap-container { width: 100%; height: 50vh; margin-bottom: 20px; }
         
-        /* 💡 새로 추가된 나스닥 전체 지수 요약바 스타일 */
+        /* 💡 요약 위젯 구조 업데이트 */
         #ndx-summary { background-color: #1e1e1e; padding: 15px 25px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .summary-title { font-size: 18px; color: #aaaaaa; font-weight: bold; }
+        .summary-title { font-size: 18px; color: #aaaaaa; font-weight: bold; margin-bottom: 5px; }
         .summary-data { font-size: 22px; font-weight: bold; }
-        .summary-data span { margin-left: 15px; }
+        .summary-data span { margin-right: 15px; }
+        
+        /* 💡 우측 추가 분석 영역 스타일 */
+        .summary-details { text-align: right; font-size: 15px; color: #e0e0e0; }
+        .summary-error { margin-top: 5px; font-size: 13px; color: #888; }
 
         h2 { font-size: 20px; margin-bottom: 15px; color: #e0e0e0; }
         table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 50px; }
@@ -100,7 +104,7 @@
         const myChart = echarts.init(chartDom);
         
         // 🚨 본인의 GitHub 레이티스트 JSON Raw URL 유지
-        const dataUrl = 'https://raw.githubusercontent.com/GOATxx/NDX-Tracker/refs/heads/main/data/latest.json';
+        const dataUrl = 'https://raw.githubusercontent.com/여기를/본인/주소로/바꾸세요/main/data/latest.json';
 
         let globalStockData = []; 
         let currentSortColumn = '';
@@ -133,7 +137,17 @@
                     `;
                 }
 
-                // 💡 2. 나스닥 전체 지수 요약 위젯 렌더링
+                // 💡 [핵심] 2. 상승/하락 기여도 합산 및 오차 계산
+                let sumPos = 0;
+                let sumNeg = 0;
+                dataList.forEach(item => {
+                    const pt = item['Point Contribution'];
+                    if (pt && pt > 0) sumPos += pt;
+                    else if (pt && pt < 0) sumNeg += pt;
+                });
+                const calculatedTotal = sumPos + sumNeg;
+
+                // 3. 나스닥 전체 지수 요약 위젯 렌더링
                 if (metadata.ndx_current_pt) {
                     const ndxPt = metadata.ndx_current_pt;
                     const ndxChg = metadata.ndx_point_change;
@@ -143,14 +157,33 @@
                     const sign = isPos ? '+' : '';
                     const colorClass = isPos ? 'pos' : 'neg';
 
+                    // 오차(Error) = 계산된 총합 - 실제 나스닥 증감폭
+                    const errorPt = calculatedTotal - ndxChg;
+                    const errorSign = errorPt > 0 ? '+' : '';
+
                     const summaryDiv = document.getElementById('ndx-summary');
                     summaryDiv.style.display = 'flex';
+                    
+                    // 좌측: 지수 기본 정보 / 우측: 분해 및 오차 정보
                     summaryDiv.innerHTML = `
-                        <div class="summary-title">NASDAQ 100 Index</div>
-                        <div class="summary-data">
-                            <span style="color: white;">${ndxPt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                            <span class="${colorClass}">${sign}${ndxChg.toFixed(2)} pt</span>
-                            <span class="${colorClass}">(${sign}${ndxPct.toFixed(2)}%)</span>
+                        <div>
+                            <div class="summary-title">NASDAQ 100 Index</div>
+                            <div class="summary-data">
+                                <span style="color: white;">${ndxPt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                <span class="${colorClass}">${sign}${ndxChg.toFixed(2)} pt</span>
+                                <span class="${colorClass}">(${sign}${ndxPct.toFixed(2)}%)</span>
+                            </div>
+                        </div>
+                        <div class="summary-details">
+                            <div>
+                                기여도 분해: 
+                                <span class="pos">+${sumPos.toFixed(2)} pt</span> / 
+                                <span class="neg">${sumNeg.toFixed(2)} pt</span>
+                            </div>
+                            <div class="summary-error">
+                                ↳ 계산 합계: ${calculatedTotal > 0 ? '+' : ''}${calculatedTotal.toFixed(2)} pt 
+                                (오차: ${errorSign}${errorPt.toFixed(2)} pt)
+                            </div>
                         </div>
                     `;
                 }
