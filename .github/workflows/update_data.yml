@@ -3,9 +3,9 @@ name: Daily NASDAQ Data Update
 # 1. 언제 실행할 것인가?
 on:
   schedule:
-    # 매주 화~토요일 오전 7시 (한국 시간 기준) / UTC 기준 월~금 밤 11시
+    # 매주 화~토요일 오전 6시 (한국 시간 기준) / UTC 기준 월~금 밤 11시
     # 미국 장 마감 후 yfinance와 Invesco 데이터가 충분히 갱신되는 가장 안전한 시간입니다.
-    - cron: '0 22 * * 1-5'
+    - cron: '0 21 * * 1-5'
   
   # 내가 원할 때 언제든 '수동'으로 버튼을 눌러 실행할 수 있게 해주는 옵션
   workflow_dispatch: 
