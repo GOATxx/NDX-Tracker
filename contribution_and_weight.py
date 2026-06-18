@@ -6,24 +6,30 @@ import json
 from datetime import datetime
 import time
 
-print("🚀 나스닥 100 메타데이터 및 자금 흐름(Shares) 계산 시작...\n")
+print("🚀 나스닥 100 메타데이터 및 자금 흐름 계산 시작 (1일 1회 실행 모드)...\n")
 
 # ==========================================
 # 0. 과거 데이터(어제 스냅샷) 불러오기
 # ==========================================
 prev_shares_data = {}
+old_market_date = None
 latest_file_path = 'data/latest.json'
 
 if os.path.exists(latest_file_path):
     try:
         with open(latest_file_path, 'r', encoding='utf-8') as f:
             old_json = json.load(f)
+            old_meta = old_json.get('metadata', {}) if isinstance(old_json, dict) else {}
             old_data = old_json.get('data', []) if isinstance(old_json, dict) else old_json
             
+            old_market_date = old_meta.get('market_date')
+            
             for item in old_data:
-                if 'Shares Held' in item:
-                    prev_shares_data[item['Ticker']] = item['Shares Held']
-        print(f"📂 이전 데이터 로드 완료. (비교 가능 종목: {len(prev_shares_data)}개)")
+                ticker = item.get('Ticker')
+                if ticker and 'Shares Held' in item:
+                    prev_shares_data[ticker] = item['Shares Held']
+                        
+        print(f"📂 이전 데이터 로드 완료. (이전 시장일: {old_market_date})")
     except Exception as e:
         print(f"⚠️ 이전 데이터를 읽는 중 에러 발생: {e}")
 
@@ -41,7 +47,11 @@ if len(hist_ndx) < 2:
 yesterday_ndx_close = hist_ndx['Close'].iloc[0]
 market_date = hist_ndx.index[1].strftime('%Y-%m-%d')
 
-# 💡 [추가된 부분] 현재 지수와 증감폭/증감률 계산
+# 💡 [단순화된 방어 로직] 휴장일 감지 (시장 날짜가 똑같으면 즉시 종료)
+if market_date == old_market_date:
+    print("\n🛑 [휴장일 감지] 오늘 시장 데이터가 이전과 동일합니다. 로봇을 종료합니다.")
+    exit()
+
 current_ndx_close = hist_ndx['Close'].iloc[1]
 ndx_point_change = current_ndx_close - yesterday_ndx_close
 ndx_percent_change = (ndx_point_change / yesterday_ndx_close) * 100
@@ -52,7 +62,7 @@ print(f" - 나스닥 100 지수: {current_ndx_close:,.2f} pt (전일 대비 {ndx
 # ==========================================
 # 2. Invesco API 수집 및 [Invesco 기준일] 찾기
 # ==========================================
-print("\n[2/3] Invesco(QQQ ETF 운용사) 공식 API 데이터 및 기준일 수집 중...")
+print("\n[2/3] Invesco(QQQ ETF 운용사) 공식 API 데이터 수집 중...")
 url = 'https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/QQQ/holdings/fund?idType=ticker&interval=monthly&productType=ETF'
 scraper = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'desktop': True})
 
@@ -140,6 +150,8 @@ for index, row in weights_df.iterrows():
             prev_close = hist['Close'].iloc[0]
             current_price = hist['Close'].iloc[1]
             change_percent = ((current_price - prev_close) / prev_close) * 100
+            
+            # 💡 [단순화] 항상 불러온 가중치를 바탕으로 계산합니다.
             point_contribution = (change_percent / 100) * (weight_percent / 100) * yesterday_ndx_close
             
             prev_shares = prev_shares_data.get(ticker, current_shares)
@@ -162,12 +174,11 @@ for index, row in weights_df.iterrows():
         pass
 
 # ==========================================
-# 4. JSON 저장 (메타데이터 객체 구조 적용)
+# 4. JSON 저장
 # ==========================================
 if stock_data:
     os.makedirs('data', exist_ok=True)
     
-    # 💡 [핵심] JSON 메타데이터에 나스닥 지수 요약 정보를 추가합니다.
     final_output = {
         "metadata": {
             "market_date": market_date,
@@ -182,11 +193,6 @@ if stock_data:
     file_path = f'data/{market_date}.json'
     latest_path = 'data/latest.json'
     
-# ==========================================
-# (기존 코드) 4. JSON 저장 (메타데이터 객체 구조 적용)
-# ==========================================
-# ... 기존 저장 코드 생략 ...
-    
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(final_output, f, ensure_ascii=False, indent=4)
         
@@ -196,21 +202,18 @@ if stock_data:
     print(f"\n✅ 완료! 나스닥 전체 지수 정보가 포함된 최종 JSON이 생성되었습니다.")
 
 # ==========================================
-# 💡 [새로 추가할 부분] 5. 웹사이트용 '메뉴판(날짜 목록)' 만들기
+# 5. 웹사이트용 '메뉴판(날짜 목록)' 만들기
 # ==========================================
     print("\n[추가작업] 웹사이트에서 읽어갈 날짜 목록(메뉴판)을 생성합니다...")
     
-    # data 폴더 안의 모든 파일 중 이름이 .json으로 끝나는 파일들만 찾습니다.
     all_files = os.listdir('data')
     date_files = [
         f.replace('.json', '') for f in all_files 
         if f.endswith('.json') and f not in ['latest.json', 'available_dates.json']
     ]
     
-    # 최신 날짜가 맨 위로 오도록 내림차순 정렬
     date_files.sort(reverse=True)
     
-    # available_dates.json 이라는 이름으로 저장
     dates_path = 'data/available_dates.json'
     with open(dates_path, 'w', encoding='utf-8') as f:
         json.dump(date_files, f, ensure_ascii=False, indent=4)
