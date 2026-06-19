@@ -245,7 +245,10 @@
                     
                     // 테이블 렌더링
                     renderDetailTable(currentDetailData);
-                }));
+                })
+                .catch(err => {
+                    tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${selectedEtf}의 상세 데이터를 불러오지 못했습니다.</td></tr>`;
+                });
         }
 
         // 💡 하단 상세 테이블 렌더링 함수
