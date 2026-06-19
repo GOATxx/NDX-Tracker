@@ -1,0 +1,872 @@
+{
+    "etf": "XLY",
+    "date": "2026-06-17",
+    "ticker_details": {
+        "AMZN": {
+            "price": 237.5,
+            "price_change_pct": -3.46,
+            "weight_current": 25.3446,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$237.50",
+                "price_change_pct": "-3.46%",
+                "holdings_value": "$5.65B",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "TSLA": {
+            "price": 396.38,
+            "price_change_pct": -2.05,
+            "weight_current": 19.1048,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$396.38",
+                "price_change_pct": "-2.05%",
+                "holdings_value": "$4.26B",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "HD": {
+            "price": 327.48,
+            "price_change_pct": -2.85,
+            "weight_current": 5.587,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$327.48",
+                "price_change_pct": "-2.85%",
+                "holdings_value": "$1.25B",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "TJX": {
+            "price": 164.13,
+            "price_change_pct": -1.32,
+            "weight_current": 4.2847,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$164.13",
+                "price_change_pct": "-1.32%",
+                "holdings_value": "$954.94M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "MCD": {
+            "price": 283.82,
+            "price_change_pct": -1.43,
+            "weight_current": 3.8749,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$283.82",
+                "price_change_pct": "-1.43%",
+                "holdings_value": "$863.59M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "BKNG": {
+            "price": 171.63,
+            "price_change_pct": -2.33,
+            "weight_current": 3.2515,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$171.63",
+                "price_change_pct": "-2.33%",
+                "holdings_value": "$724.66M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "LOW": {
+            "price": 217.27,
+            "price_change_pct": -3.01,
+            "weight_current": 2.8652,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$217.27",
+                "price_change_pct": "-3.01%",
+                "holdings_value": "$638.57M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "SBUX": {
+            "price": 99.82,
+            "price_change_pct": -1.83,
+            "weight_current": 2.6736,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$99.82",
+                "price_change_pct": "-1.83%",
+                "holdings_value": "$595.86M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "MAR": {
+            "price": 394.61,
+            "price_change_pct": -1.13,
+            "weight_current": 2.0403,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$394.61",
+                "price_change_pct": "-1.13%",
+                "holdings_value": "$454.73M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "HLT": {
+            "price": 349.3,
+            "price_change_pct": -0.26,
+            "weight_current": 1.8829,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$349.30",
+                "price_change_pct": "-0.26%",
+                "holdings_value": "$419.64M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "RCL": {
+            "price": 301.47,
+            "price_change_pct": -3.63,
+            "weight_current": 1.7831,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$301.47",
+                "price_change_pct": "-3.63%",
+                "holdings_value": "$397.40M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "ROST": {
+            "price": 233.25,
+            "price_change_pct": -0.53,
+            "weight_current": 1.7736,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$233.25",
+                "price_change_pct": "-0.53%",
+                "holdings_value": "$395.29M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "ORLY": {
+            "price": 88.4,
+            "price_change_pct": -2.51,
+            "weight_current": 1.7497,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$88.40",
+                "price_change_pct": "-2.51%",
+                "holdings_value": "$389.95M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "GM": {
+            "price": 79.58,
+            "price_change_pct": -3.55,
+            "weight_current": 1.6912,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$79.58",
+                "price_change_pct": "-3.55%",
+                "holdings_value": "$376.92M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "DASH": {
+            "price": 165.66,
+            "price_change_pct": -2.57,
+            "weight_current": 1.4559,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$165.66",
+                "price_change_pct": "-2.57%",
+                "holdings_value": "$324.48M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "ABNB": {
+            "price": 140.54,
+            "price_change_pct": -0.47,
+            "weight_current": 1.3995,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$140.54",
+                "price_change_pct": "-0.47%",
+                "holdings_value": "$311.91M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "F": {
+            "price": 13.96,
+            "price_change_pct": -3.12,
+            "weight_current": 1.2861,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$13.96",
+                "price_change_pct": "-3.12%",
+                "holdings_value": "$286.62M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "NKE": {
+            "price": 44.19,
+            "price_change_pct": -1.89,
+            "weight_current": 1.2378,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$44.19",
+                "price_change_pct": "-1.89%",
+                "holdings_value": "$275.87M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "AZO": {
+            "price": 3059.63,
+            "price_change_pct": -2.18,
+            "weight_current": 1.1915,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$3059.63",
+                "price_change_pct": "-2.18%",
+                "holdings_value": "$265.55M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "EBAY": {
+            "price": 107.89,
+            "price_change_pct": -1.31,
+            "weight_current": 1.1465,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$107.89",
+                "price_change_pct": "-1.31%",
+                "holdings_value": "$255.52M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "CVNA": {
+            "price": 62.86,
+            "price_change_pct": -10.25,
+            "weight_current": 1.045,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$62.86",
+                "price_change_pct": "-10.25%",
+                "holdings_value": "$232.90M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "YUM": {
+            "price": 154.07,
+            "price_change_pct": -2.28,
+            "weight_current": 1.0055,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$154.07",
+                "price_change_pct": "-2.28%",
+                "holdings_value": "$224.10M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "CMG": {
+            "price": 31.86,
+            "price_change_pct": -2.3,
+            "weight_current": 0.9753,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$31.86",
+                "price_change_pct": "-2.30%",
+                "holdings_value": "$217.37M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "DHI": {
+            "price": 152.48,
+            "price_change_pct": -2.46,
+            "weight_current": 0.9658,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$152.48",
+                "price_change_pct": "-2.46%",
+                "holdings_value": "$215.25M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "CCL": {
+            "price": 29.91,
+            "price_change_pct": -3.2,
+            "weight_current": 0.904,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$29.91",
+                "price_change_pct": "-3.20%",
+                "holdings_value": "$201.47M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "GRMN": {
+            "price": 231.89,
+            "price_change_pct": -1.31,
+            "weight_current": 0.8913,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$231.89",
+                "price_change_pct": "-1.31%",
+                "holdings_value": "$198.64M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "TPR": {
+            "price": 145.87,
+            "price_change_pct": -2.36,
+            "weight_current": 0.6943,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$145.87",
+                "price_change_pct": "-2.36%",
+                "holdings_value": "$154.75M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "EXPE": {
+            "price": 239.47,
+            "price_change_pct": -1.68,
+            "weight_current": 0.6588,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$239.47",
+                "price_change_pct": "-1.68%",
+                "holdings_value": "$146.82M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "WSM": {
+            "price": 221.15,
+            "price_change_pct": -2.65,
+            "weight_current": 0.6207,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$221.15",
+                "price_change_pct": "-2.65%",
+                "holdings_value": "$138.34M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "DRI": {
+            "price": 211.33,
+            "price_change_pct": 1.09,
+            "weight_current": 0.5721,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$211.33",
+                "price_change_pct": "+1.09%",
+                "holdings_value": "$127.50M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "PHM": {
+            "price": 121.88,
+            "price_change_pct": -2.31,
+            "weight_current": 0.5506,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$121.88",
+                "price_change_pct": "-2.31%",
+                "holdings_value": "$122.71M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "ULTA": {
+            "price": 450.75,
+            "price_change_pct": -2.79,
+            "weight_current": 0.4701,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$450.75",
+                "price_change_pct": "-2.79%",
+                "holdings_value": "$104.78M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "LEN": {
+            "price": 86.48,
+            "price_change_pct": -3.68,
+            "weight_current": 0.4387,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$86.48",
+                "price_change_pct": "-3.68%",
+                "holdings_value": "$97.78M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "NVR": {
+            "price": 6275.94,
+            "price_change_pct": -2.51,
+            "weight_current": 0.4123,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$6275.94",
+                "price_change_pct": "-2.51%",
+                "holdings_value": "$91.88M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "TSCO": {
+            "price": 29.75,
+            "price_change_pct": -1.52,
+            "weight_current": 0.3694,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$29.75",
+                "price_change_pct": "-1.52%",
+                "holdings_value": "$82.34M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "RL": {
+            "price": 403.85,
+            "price_change_pct": -0.71,
+            "weight_current": 0.3668,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$403.85",
+                "price_change_pct": "-0.71%",
+                "holdings_value": "$81.76M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "DECK": {
+            "price": 105.72,
+            "price_change_pct": -4.04,
+            "weight_current": 0.3527,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$105.72",
+                "price_change_pct": "-4.04%",
+                "holdings_value": "$78.60M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "GPC": {
+            "price": 106.12,
+            "price_change_pct": -1.07,
+            "weight_current": 0.3469,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$106.12",
+                "price_change_pct": "-1.07%",
+                "holdings_value": "$77.32M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "LVS": {
+            "price": 48.13,
+            "price_change_pct": -1.66,
+            "weight_current": 0.342,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$48.13",
+                "price_change_pct": "-1.66%",
+                "holdings_value": "$76.22M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "BBY": {
+            "price": 72.14,
+            "price_change_pct": -3.28,
+            "weight_current": 0.3304,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$72.14",
+                "price_change_pct": "-3.28%",
+                "holdings_value": "$73.63M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "APTV": {
+            "price": 62.87,
+            "price_change_pct": -4.28,
+            "weight_current": 0.3144,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$62.87",
+                "price_change_pct": "-4.28%",
+                "holdings_value": "$70.06M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "LULU": {
+            "price": 111.76,
+            "price_change_pct": -3.24,
+            "weight_current": 0.2804,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$111.76",
+                "price_change_pct": "-3.24%",
+                "holdings_value": "$62.49M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "HAS": {
+            "price": 83.47,
+            "price_change_pct": -1.75,
+            "weight_current": 0.2615,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$83.47",
+                "price_change_pct": "-1.75%",
+                "holdings_value": "$58.29M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "DPZ": {
+            "price": 314.36,
+            "price_change_pct": -1.92,
+            "weight_current": 0.2297,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$314.36",
+                "price_change_pct": "-1.92%",
+                "holdings_value": "$51.18M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "NCLH": {
+            "price": 19.83,
+            "price_change_pct": -2.46,
+            "weight_current": 0.2123,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$19.83",
+                "price_change_pct": "-2.46%",
+                "holdings_value": "$47.31M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "MGM": {
+            "price": 46.94,
+            "price_change_pct": -2.17,
+            "weight_current": 0.2116,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$46.94",
+                "price_change_pct": "-2.17%",
+                "holdings_value": "$47.16M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "WYNN": {
+            "price": 102.31,
+            "price_change_pct": -1.31,
+            "weight_current": 0.2029,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$102.31",
+                "price_change_pct": "-1.31%",
+                "holdings_value": "$45.22M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        },
+        "POOL": {
+            "price": 194.34,
+            "price_change_pct": -1.89,
+            "weight_current": 0.1497,
+            "shares_change": 0,
+            "dollar_flow": 0.0,
+            "display": {
+                "price": "$194.34",
+                "price_change_pct": "-1.89%",
+                "holdings_value": "$33.35M",
+                "dollar_flow": "변동 없음",
+                "flow_ratio_pct": "+0.00%"
+            }
+        }
+    },
+    "raw_data": {
+        "AMZN": {
+            "shares": 23783418.0,
+            "weight": 25.344565
+        },
+        "TSLA": {
+            "shares": 10741945.0,
+            "weight": 19.104762
+        },
+        "HD": {
+            "shares": 3802326.0,
+            "weight": 5.587031
+        },
+        "TJX": {
+            "shares": 5818206.0,
+            "weight": 4.284736
+        },
+        "MCD": {
+            "shares": 3042745.0,
+            "weight": 3.874856
+        },
+        "BKNG": {
+            "shares": 4222202.0,
+            "weight": 3.251466
+        },
+        "LOW": {
+            "shares": 2939081.0,
+            "weight": 2.865222
+        },
+        "SBUX": {
+            "shares": 5969320.0,
+            "weight": 2.673557
+        },
+        "MAR": {
+            "shares": 1152359.0,
+            "weight": 2.040341
+        },
+        "HLT": {
+            "shares": 1201368.0,
+            "weight": 1.882876
+        },
+        "RCL": {
+            "shares": 1318213.0,
+            "weight": 1.783104
+        },
+        "ROST": {
+            "shares": 1694698.0,
+            "weight": 1.773621
+        },
+        "ORLY": {
+            "shares": 4411193.0,
+            "weight": 1.749667
+        },
+        "GM": {
+            "shares": 4736344.0,
+            "weight": 1.691197
+        },
+        "DASH": {
+            "shares": 1958689.0,
+            "weight": 1.455895
+        },
+        "ABNB": {
+            "shares": 2219338.0,
+            "weight": 1.399492
+        },
+        "F": {
+            "shares": 20531749.0,
+            "weight": 1.286051
+        },
+        "NKE": {
+            "shares": 6242923.0,
+            "weight": 1.237824
+        },
+        "AZO": {
+            "shares": 86792.0,
+            "weight": 1.191504
+        },
+        "EBAY": {
+            "shares": 2368295.0,
+            "weight": 1.146473
+        },
+        "CVNA": {
+            "shares": 3704987.0,
+            "weight": 1.04498
+        },
+        "YUM": {
+            "shares": 1454506.0,
+            "weight": 1.005496
+        },
+        "CMG": {
+            "shares": 6822787.0,
+            "weight": 0.975337
+        },
+        "DHI": {
+            "shares": 1411689.0,
+            "weight": 0.965826
+        },
+        "CCL": {
+            "shares": 6735894.0,
+            "weight": 0.90398
+        },
+        "GRMN": {
+            "shares": 856607.0,
+            "weight": 0.891273
+        },
+        "TPR": {
+            "shares": 1060867.0,
+            "weight": 0.694343
+        },
+        "EXPE": {
+            "shares": 613102.0,
+            "weight": 0.658765
+        },
+        "WSM": {
+            "shares": 625542.0,
+            "weight": 0.620712
+        },
+        "DRI": {
+            "shares": 603318.0,
+            "weight": 0.572077
+        },
+        "PHM": {
+            "shares": 1006801.0,
+            "weight": 0.550583
+        },
+        "ULTA": {
+            "shares": 232458.0,
+            "weight": 0.47014
+        },
+        "LEN": {
+            "shares": 1130628.0,
+            "weight": 0.438715
+        },
+        "NVR": {
+            "shares": 14640.0,
+            "weight": 0.412256
+        },
+        "TSCO": {
+            "shares": 2767612.0,
+            "weight": 0.369436
+        },
+        "RL": {
+            "shares": 202441.0,
+            "weight": 0.366831
+        },
+        "DECK": {
+            "shares": 743509.0,
+            "weight": 0.352688
+        },
+        "GPC": {
+            "shares": 728638.0,
+            "weight": 0.346941
+        },
+        "LVS": {
+            "shares": 1583599.0,
+            "weight": 0.341986
+        },
+        "BBY": {
+            "shares": 1020718.0,
+            "weight": 0.330392
+        },
+        "APTV": {
+            "shares": 1114354.0,
+            "weight": 0.31435
+        },
+        "LULU": {
+            "shares": 559133.0,
+            "weight": 0.280381
+        },
+        "HAS": {
+            "shares": 698313.0,
+            "weight": 0.261534
+        },
+        "DPZ": {
+            "shares": 162819.0,
+            "weight": 0.229657
+        },
+        "NCLH": {
+            "shares": 2385881.0,
+            "weight": 0.212285
+        },
+        "MGM": {
+            "shares": 1004624.0,
+            "weight": 0.211589
+        },
+        "WYNN": {
+            "shares": 442008.0,
+            "weight": 0.202906
+        },
+        "POOL": {
+            "shares": 171632.0,
+            "weight": 0.149661
+        }
+    }
+}
