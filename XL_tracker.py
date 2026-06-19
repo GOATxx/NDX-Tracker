@@ -48,13 +48,11 @@ def is_valid_ticker(val):
     return True
 
 def main():
-    print("🚀 최적화된 분리형 ETF 수급 분석 시작...\n")
+    print("🚀 ETF 수급 분석 시작 (가격 정보 포함)...\n")
     
-    # 1. 상세 데이터를 저장할 메인 폴더 생성
     if not os.path.exists(DETAILS_DIR):
         os.makedirs(DETAILS_DIR)
 
-    # 2. 통합 메트릭스 파일 로드
     if os.path.exists(METRICS_FILE):
         with open(METRICS_FILE, 'r', encoding='utf-8') as f:
             metrics_data = json.load(f)
@@ -64,12 +62,11 @@ def main():
     for etf in ETF_LIST:
         print(f">>> {etf} 분석 중...")
         
-        # ETF별 상세 폴더 생성 (예: details/XLK/)
         etf_dir = os.path.join(DETAILS_DIR, etf)
         if not os.path.exists(etf_dir):
             os.makedirs(etf_dir)
 
-        # 엑셀 다운로드 및 날짜 추출
+        # 1. 엑셀 다운로드 및 파싱
         excel_url = f"https://www.ssga.com/us/en/intermediary/library-content/products/fund-data/etfs/us/holdings-daily-us-en-{etf.lower()}.xlsx"
         try:
             response = requests.get(excel_url, headers=HEADERS)
@@ -78,7 +75,6 @@ def main():
             
             excel_date_obj = extract_date_from_excel(excel_bytes)
             if not excel_date_obj:
-                print(f"    [오류] {etf} 엑셀에서 날짜를 찾을 수 없습니다.")
                 continue
             excel_date_str = excel_date_obj.strftime("%Y-%m-%d")
         except Exception as e:
@@ -86,10 +82,9 @@ def main():
             continue
 
         if excel_date_str in metrics_data.get(etf, {}).get("history", {}):
-            print(f"    * {etf}: 이미 오늘자({excel_date_str}) 데이터가 있습니다. 스킵합니다.\n")
+            print(f"    * {etf}: 이미 오늘자({excel_date_str}) 데이터가 있습니다.\n")
             continue
 
-        # 엑셀 파싱 및 티커 전처리
         excel_bytes.seek(0)
         df_holdings = pd.read_excel(excel_bytes, skiprows=4)
         df_holdings.columns = df_holdings.columns.str.strip()
@@ -108,7 +103,7 @@ def main():
 
         all_tickers = list(current_raw_data.keys())
 
-        # YFinance 조회
+        # 2. YFinance 시장 데이터 로드
         end_date_yf = (excel_date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
         start_date_yf = (excel_date_obj - timedelta(days=45)).strftime("%Y-%m-%d")
         
@@ -116,16 +111,28 @@ def main():
         etf_history = yf.download(etf, start=start_date_yf, end=end_date_yf, progress=False)
         stocks_data = yf.download(all_tickers, start=start_date_yf, end=end_date_yf, progress=False)['Close']
 
-        # 전체 지표(Metrics) 계산
+        # 3. ETF 자체 가격 및 변화량 계산 [새로 추가]
+        etf_price, etf_change_amt, etf_change_pct = 0.0, 0.0, 0.0
+        try:
+            etf_close_arr = etf_history['Close'].to_numpy().flatten()
+            if len(etf_close_arr) >= 1:
+                etf_price = float(etf_close_arr[-1])
+            if len(etf_close_arr) >= 2:
+                prev_price = float(etf_close_arr[-2])
+                etf_change_amt = etf_price - prev_price
+                etf_change_pct = (etf_change_amt / prev_price) * 100
+        except Exception as e:
+            print(f"    * ETF 가격 계산 오류: {e}")
+
+        # 4. 전체 지표(Metrics) 계산
         etf_vol_arr = etf_history['Volume'].to_numpy().flatten()
         current_vol = float(etf_vol_arr[-1])
         avg_vol_20 = float(etf_vol_arr[-21:-1].mean()) if len(etf_vol_arr) > 20 else 0.0
         rvol = current_vol / avg_vol_20 if avg_vol_20 > 0 else 0
 
         try:
-            etf_close_arr = etf_history['Close'].to_numpy().flatten()
             spy_close_arr = spy_data.to_numpy().flatten()
-            excess_return = (((float(etf_close_arr[-1]) - float(etf_close_arr[-6])) / float(etf_close_arr[-6])) * 100) - \
+            excess_return = (((etf_price - float(etf_close_arr[-6])) / float(etf_close_arr[-6])) * 100) - \
                             (((float(spy_close_arr[-1]) - float(spy_close_arr[-6])) / float(spy_close_arr[-6])) * 100)
         except:
             excess_return = 0.0
@@ -140,11 +147,10 @@ def main():
                         if float(prices[-1]) > float(prices[-2]):
                             weighted_breadth += data["weight"]
 
-        # 종목별 상세 흐름 계산 (어제 데이터 파일 찾기)
+        # 5. 종목별 상세 흐름 계산
         total_fund_flow_dollar = 0.0
         ticker_details = {}
         
-        # 세부 폴더에 저장된 파일 목록을 읽어 과거 날짜 찾기
         saved_detail_files = sorted([f for f in os.listdir(etf_dir) if f.endswith('.json')])
         is_first_run = len(saved_detail_files) == 0
 
@@ -165,8 +171,7 @@ def main():
             if isinstance(stocks_data, pd.DataFrame) and ticker in stocks_data.columns:
                 valid_series = stocks_data[ticker].dropna()
                 prices_arr = valid_series.to_numpy().flatten()
-                if len(prices_arr) >= 1:
-                    price = float(prices_arr[-1])
+                if len(prices_arr) >= 1: price = float(prices_arr[-1])
                 if len(prices_arr) >= 2 and float(prices_arr[-2]) > 0:
                     price_change_pct = ((price - float(prices_arr[-2])) / float(prices_arr[-2])) * 100
 
@@ -179,18 +184,20 @@ def main():
                 "price": round(price, 2),
                 "price_change_pct": round(price_change_pct, 2),
                 "weight_current": round(c_weight, 4),
+                "shares_current": int(c_shares),
                 "shares_change": int(share_diff),
                 "dollar_flow": round(dollar_flow, 2),
                 "display": {
                     "price": f"${price:.2f}",
                     "price_change_pct": f"{'+' if price_change_pct > 0 else ''}{price_change_pct:.2f}%",
+                    "shares_current": f"{int(c_shares):,}주", # [추가] 콤마 찍힌 주식 수 문자열
                     "holdings_value": format_value(holdings_value),
                     "dollar_flow": format_flow(dollar_flow),
                     "flow_ratio_pct": f"{flow_ratio_pct:+.2f}%"
                 }
             }
 
-        # 20일 이동평균 배수 계산 (XL_metrics.json 활용)
+        # 6. 20일 이동평균 배수 계산
         fund_flow_display = "데이터 누적 중" if is_first_run else format_flow(total_fund_flow_dollar)
         flow_ratio_20d_display, flow_ratio_20d_value = "데이터 부족", 0.0
 
@@ -206,22 +213,28 @@ def main():
                 flow_ratio_20d_value = abs(total_fund_flow_dollar) / avg_flow_20d
                 flow_ratio_20d_display = f"{flow_ratio_20d_value:.1f}배"
 
-        # 데이터 저장 1: XL_metrics.json (통합 지표 업데이트)
+        # 7. 데이터 저장 1: XL_metrics.json (ETF 가격 정보 포함)
         metrics_data[etf]["history"][excel_date_str] = {
-            "Fund_Flow": {"value": round(total_fund_flow_dollar, 2), "display": fund_flow_display},                 # 각 회사의 주가 변화 * 보유 주식 수 변화의 총 합
-            "Fund_Flow_Intensity_20D": {"value": round(flow_ratio_20d_value, 2), "display": flow_ratio_20d_display},# 유입 현금 20일 평균 대비 n배
-            "Relative_Volume": {"value": round(rvol, 2), "display": f"{rvol:.1f}배"},                               # 거래량 20일 평균 대비 n배
-            "RS_Momentum": {"value": round(excess_return, 2), "display": f"SPY 대비 {'+' if excess_return > 0 else ''}{excess_return:.2f}%p"},      # S&P500 5일 성과 대비 초과/미만 성과%
-            "Weighted_Breadth": {"value": round(weighted_breadth, 2), "display": f"{weighted_breadth:.1f}%"}        # 상승한 종목의 보유 비중치 합 - 하락한 종목의 보유 비중치 합
+            "ETF_Price": {
+                "value": round(etf_price, 2),
+                "change_amt": round(etf_change_amt, 2),
+                "change_pct": round(etf_change_pct, 2),
+                "display": f"${etf_price:.2f} ({'+' if etf_change_amt > 0 else ''}{etf_change_amt:.2f} / {'+' if etf_change_pct > 0 else ''}{etf_change_pct:.2f}%)"
+            },
+            "Fund_Flow": {"value": round(total_fund_flow_dollar, 2), "display": fund_flow_display},                                             # 각 회사의 주가 변화 * 보유 주식 수 변화의 총 합
+            "Fund_Flow_Intensity_20D": {"value": round(flow_ratio_20d_value, 2), "display": flow_ratio_20d_display},                            # 유입 현금 20일 평균 대비 n배
+            "Relative_Volume": {"value": round(rvol, 2), "display": f"{rvol:.1f}배"},                                                            # 거래량 20일 평균 대비 n배
+            "RS_Momentum": {"value": round(excess_return, 2), "display": f"SPY 대비 {'+' if excess_return > 0 else ''}{excess_return:.2f}%p"},   # S&P500 5일 성과 대비 초과/미만 성과%
+            "Weighted_Breadth": {"value": round(weighted_breadth, 2), "display": f"{weighted_breadth:.1f}%"}                                    # 상승한 종목의 보유 비중치 합 - 하락한 종목의 보유 비중치 합
         }
 
-        # 데이터 저장 2: details/ETF명/YYYY-MM-DD.json (상세 내역 파일 생성)
+        # 8. 데이터 저장 2: details/ETF명/YYYY-MM-DD.json
         detail_file_path = os.path.join(etf_dir, f"{excel_date_str}.json")
         detail_data = {
             "etf": etf,
             "date": excel_date_str,
             "ticker_details": ticker_details,
-            "raw_data": current_raw_data # 내일자 계산을 위해 보존
+            "raw_data": current_raw_data 
         }
         
         with open(detail_file_path, 'w', encoding='utf-8') as f:
@@ -229,11 +242,10 @@ def main():
 
         print(f"    [성공] 지표 업데이트 완료 & 상세파일 생성 ({detail_file_path})\n")
 
-    # 모든 ETF 루프가 끝난 뒤 메트릭스 파일 한 번에 저장
     with open(METRICS_FILE, 'w', encoding='utf-8') as f:
         json.dump(metrics_data, f, indent=4, ensure_ascii=False)
         
-    print("모든 최적화 처리 및 저장이 완료되었습니다!")
+    print("모든 처리가 완료되었습니다!")
 
 if __name__ == "__main__":
     main()
