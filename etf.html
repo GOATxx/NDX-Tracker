@@ -30,7 +30,7 @@
         .controls select, .controls input[type="date"] { 
             padding: 8px 15px; 
             background-color: #121212; 
-            color: #aaaaaa; 
+            color: #00b853; 
             border: 1px solid #333; 
             border-radius: 6px; 
             font-size: 16px; 
@@ -40,9 +40,9 @@
         }
         .controls select:hover, .controls input[type="date"]:hover { border-color: #00b853; }
         
-        /* 달력 아이콘 색상 커스텀 (크롬/엣지 계열 지원) */
+        /* 달력 아이콘 색상을 #00b853 컬러 필터로 변환 (크롬, 사파리, 엣지 등 지원) */
         .controls input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1) sepia(100%) saturate(1000%) hue-rotate(90deg);
+            filter: invert(48%) sepia(87%) saturate(1418%) hue-rotate(113deg) brightness(97%) contrast(104%);
             cursor: pointer;
         }
 
