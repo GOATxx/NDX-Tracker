@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ETF 섹터 수급 대시보드</title>
-    <!-- Chart.js CDN 추가 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- ECharts 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         body { margin: 0; padding: 20px; background-color: #121212; color: white; font-family: sans-serif; }
-        .container { max-width: 1250px; margin: 0 auto; }
+        .container { max-width: 1200px; margin: 0 auto; }
         #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; color: #aaaaaa; z-index: 1000; }
         
         /* 탭 디자인 */
@@ -40,7 +40,7 @@
         }
         .controls select:hover, .controls input[type="date"]:hover { border-color: #00b853; }
         
-        /* 달력 아이콘 색상을 #00b853 컬러 필터로 변환 (크롬, 사파리, 엣지 등 지원) */
+        /* 달력 아이콘 색상을 #00b853 컬러 필터로 변환 */
         .controls input[type="date"]::-webkit-calendar-picker-indicator {
             filter: invert(48%) sepia(87%) saturate(1418%) hue-rotate(113deg) brightness(97%) contrast(104%);
             cursor: pointer;
@@ -60,18 +60,16 @@
             font-weight: bold;
         }
 
-        /* 상세 테이블 및 차트 사이드바 다단 레이아웃 */
-        .bottom-layout { display: flex; gap: 20px; align-items: flex-start; }
-        .layout-table { flex: 2; min-width: 600px; margin-bottom: 0; }
-        .layout-chart { flex: 1.1; min-width: 380px; margin-bottom: 0; }
-        
-        @media (max-width: 1100px) {
-            .bottom-layout { flex-direction: column; }
-            .layout-table, .layout-chart { width: 100%; min-width: unset; }
+        /* ECharts용 차트 컨테이너 */
+        #weight-chart-container { 
+            width: 100%; 
+            height: 450px; 
+            background-color: #1a1a1a; 
+            border-radius: 8px; 
         }
 
         /* 테이블 디자인 */
-        table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 30px; }
         th, td { padding: 12px 15px; text-align: center; border-bottom: 1px solid #2d2d2d; }
         th { background-color: #2a2a2a; color: #aaaaaa; font-weight: bold; }
         td:first-child, th:first-child { text-align: left; } /* 첫 열(종목명/섹터)은 왼쪽 정렬 */
@@ -146,38 +144,33 @@
         <!-- 예외 안내 메시지 박스 -->
         <div id="dateNotice"></div>
 
-        <!-- 3. 아랫부분: 상세 테이블 및 비중 차트 레이아웃 영역 -->
-        <div class="bottom-layout">
-            <!-- 3-1. 상세 수급 테이블 상자 -->
-            <div class="section-box layout-table" id="bottomSection">
-                <h2 style="border-bottom: none; padding-bottom: 0;">🏢 <span id="displayEtfBottom" class="pos">XLK</span> 개별 기업 상세 수급 내역</h2>
-                <table style="margin-bottom: 0;">
-                    <thead>
-                        <tr id="tickerTableHeadRow">
-                            <th class="sortable" data-sort="ticker">티커 ⇅</th>
-                            <th class="sortable" data-sort="price">당일 종가 ⇅</th>
-                            <th class="sortable" data-sort="price_change_pct">전일비 증감률 ⇅</th>
-                            <th class="sortable" data-sort="shares_current">보유 주식 수 ⇅</th>
-                            <th class="sortable" data-sort="shares_change">주식 수 변동 ⇅</th>
-                            <th class="sortable" data-sort="holdings_value">보유 가치 ⇅</th>
-                            <th class="sortable" data-sort="dollar_flow">자금 유출입액 ($) ⇅</th>
-                            <th class="sortable" data-sort="flow_ratio_pct">유입 비율 ⇅</th>
-                            <th class="sortable" data-sort="weight_current">보유 비중 ⇅</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tickerTableBody">
-                        <tr><td colspan="9">데이터를 불러오는 중입니다...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+        <!-- 3. [추가] 중간 부분: ECharts 비중 분배 도넛 차트 상자 -->
+        <div class="section-box" id="chartSection" style="display: none; background-color: #1a1a1a;">
+            <h2>🍕 <span id="displayEtfChart" class="pos">XLK</span> 보유 비중 포트폴리오</h2>
+            <div id="weight-chart-container"></div>
+        </div>
 
-            <!-- 3-2. 도넛 차트 상자 -->
-            <div class="section-box layout-chart" id="chartSection" style="display: none;">
-                <h2>🍕 <span id="displayEtfChart" class="pos">XLK</span> 보유 비중 포트폴리오</h2>
-                <div style="height: 380px; position: relative;">
-                    <canvas id="weightDonutChart"></canvas>
-                </div>
-            </div>
+        <!-- 4. 아랫부분: 개별 기업 상세 수급 내역 표 상자 -->
+        <div class="section-box" id="bottomSection">
+            <h2 style="border-bottom: none; padding-bottom: 0;">🏢 <span id="displayEtfBottom" class="pos">XLK</span> 개별 기업 상세 수급 내역</h2>
+            <table style="margin-bottom: 0;">
+                <thead>
+                    <tr id="tickerTableHeadRow">
+                        <th class="sortable" data-sort="ticker">티커 ⇅</th>
+                        <th class="sortable" data-sort="price">당일 종가 ⇅</th>
+                        <th class="sortable" data-sort="price_change_pct">전일비 증감률 ⇅</th>
+                        <th class="sortable" data-sort="shares_current">보유 주식 수 ⇅</th>
+                        <th class="sortable" data-sort="shares_change">주식 수 변동 ⇅</th>
+                        <th class="sortable" data-sort="holdings_value">보유 가치 ⇅</th>
+                        <th class="sortable" data-sort="dollar_flow">자금 유출입액 ($) ⇅</th>
+                        <th class="sortable" data-sort="flow_ratio_pct">유입 비율 ⇅</th>
+                        <th class="sortable" data-sort="weight_current">보유 비중 ⇅</th>
+                    </tr>
+                </thead>
+                <tbody id="tickerTableBody">
+                    <tr><td colspan="9">데이터를 불러오는 중입니다...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -191,8 +184,8 @@
         let sortKey = null;
         let sortDirection = 'none';
 
-        // 차트 인스턴스 전역 변수
-        let donutChartInstance = null;
+        // ECharts 인스턴스 변수
+        let weightChartInstance = null;
 
         // 색상 판별 헬퍼 함수
         function getColorClass(value) {
@@ -375,8 +368,8 @@
                     // 테이블 렌더링 수행
                     applySortAndRender();
                     
-                    // 도넛 차트 시각화 함수 호출
-                    renderDonutChart(detailDataList);
+                    // ECharts 도넛 차트 그리기
+                    renderEChartsDonut(detailDataList);
                 })
                 .catch(err => {
                     tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${selectedEtf}의 상세 수급 내역 파일이 서버에 존재하지 않습니다.</td></tr>`;
@@ -463,11 +456,11 @@
             });
         }
 
-        // 6. 도넛 차트 렌더링 함수 (0.5% 미만 '기타' 처리 포함)
-        function renderDonutChart(list) {
+        // 6. [ECharts 이식] 도넛 차트 렌더링 함수
+        function renderEChartsDonut(list) {
+            const chartDom = document.getElementById('weight-chart-container');
             const chartBox = document.getElementById('chartSection');
-            const canvasElement = document.getElementById('weightDonutChart');
-            
+
             if (list.length === 0) {
                 chartBox.style.display = 'none';
                 return;
@@ -475,79 +468,88 @@
 
             chartBox.style.display = 'block';
 
+            if (!weightChartInstance) {
+                weightChartInstance = echarts.init(chartDom);
+            }
+
+            let mainData = [];
+            let othersWeight = 0;
+
             // 비중 내림차순 정렬
-            const sortedList = [...list].sort((a, b) => b.weight_current - a.weight_current);
+            const sortedData = [...list].sort((a, b) => b.weight_current - a.weight_current);
 
-            let labels = [];
-            let dataValues = [];
-            let othersWeightSum = 0;
-
-            sortedList.forEach(item => {
-                if (item.weight_current >= 0.5) {
-                    labels.push(item.ticker);
-                    dataValues.push(parseFloat(item.weight_current.toFixed(2)));
-                } else {
-                    othersWeightSum += item.weight_current;
+            sortedData.forEach(item => {
+                const w = item.weight_current;
+                if (w && w >= 0.5) {
+                    let dataItem = { name: item.ticker, value: Number(w.toFixed(2)) };
+                    // 2% 미만 소형 종목은 혼잡 방지를 위해 차트 자체 지시선 라벨 생략
+                    if (w < 2) {
+                        dataItem.label = { show: false };      
+                        dataItem.labelLine = { show: false };  
+                    }
+                    mainData.push(dataItem);
+                } else if (w && w < 0.5) {
+                    othersWeight += w;
                 }
             });
 
-            // 0.5% 미만 잔여 종목들의 비중 합산하여 '기타' 처리
-            if (othersWeightSum > 0) {
-                labels.push('기타 (<0.5%)');
-                dataValues.push(parseFloat(othersWeightSum.toFixed(2)));
+            // 0.5% 미만 기타 합산 처리
+            if (othersWeight > 0) {
+                let othersItem = { 
+                    name: '기타 (0.5% 이하)', 
+                    value: Number(othersWeight.toFixed(2)),
+                    itemStyle: { color: '#444444' }
+                };
+                if (othersWeight < 2) {
+                    othersItem.label = { show: false };
+                    othersItem.labelLine = { show: false };
+                }
+                mainData.push(othersItem);
             }
 
-            // 기존 차트가 존재할 경우 인스턴스 소멸 후 신규 생성 (동적 전환 충돌 방지)
-            if (donutChartInstance) {
-                donutChartInstance.destroy();
-            }
-
-            // 어두운 대시보드 테마와 대비되는 컬러 팔레트 구성
-            const themeColors = [
-                '#00b853', '#10b981', '#3b82f6', '#6366f1', '#8b5cf6', 
-                '#ec4899', '#f43f5e', '#f59e0b', '#14b8a6', '#06b6d4', 
-                '#34d399', '#60a5fa', '#a78bfa', '#f472b6', '#fb7185',
-                '#fbbf24', '#2dd4bf', '#22d3ee', '#a7f3d0', '#bfdbfe'
-            ];
-
-            const ctx = canvasElement.getContext('2d');
-            donutChartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: dataValues,
-                        backgroundColor: themeColors,
-                        borderColor: '#1e1e1e', // 레이아웃 박스 배경색과 일치시켜 경계선 부드럽게 구현
-                        borderWidth: 1.5
-                    }]
+            // 전달받은 index.html의 QQQ 비중 ECharts 디자인 속성 완벽 대입
+            const option = {
+                tooltip: { 
+                    trigger: 'item', 
+                    formatter: function (params) {
+                        return `<span style="font-weight:bold; color:#121212;">${params.name}</span><br/><span style="color:#121212;">비중: ${params.value}%</span>`;
+                    }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom', // 좁은 레이아웃에서도 라벨이 한눈에 보이도록 밑으로 배치
-                            labels: {
-                                color: '#aaaaaa', // 다크모드 대응 회색 글자
-                                boxWidth: 12,
-                                font: {
-                                    size: 11
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `  ${context.label}: ${context.raw.toFixed(2)}%`;
-                                }
-                            }
-                        }
+                series: [{
+                    name: '보유 비중',
+                    type: 'pie',
+                    radius: ['50%', '80%'], // 도넛 형태
+                    avoidLabelOverlap: true,
+                    itemStyle: { 
+                        borderRadius: 6, 
+                        borderColor: '#1a1a1a', 
+                        borderWidth: 2 
                     },
-                    cutout: '62%' // 도넛 두께 조절
-                }
-            });
+                    label: { 
+                        show: true, 
+                        position: 'outside', 
+                        color: '#e0e0e0', 
+                        fontSize: 12, 
+                        formatter: '{b}\n{c}%' 
+                    },
+                    labelLine: { 
+                        show: true, 
+                        length: 15, 
+                        length2: 10 
+                    },
+                    data: mainData
+                }]
+            };
+
+            weightChartInstance.setOption(option, true);
         }
+
+        // 창 크기 변경 대응 반응형 바인딩
+        window.addEventListener('resize', () => {
+            if (weightChartInstance) {
+                weightChartInstance.resize();
+            }
+        });
 
         function updateHeaderArrows() {
             const headers = document.querySelectorAll('#tickerTableHeadRow th.sortable');
