@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ETF 섹터 수급 대시보드</title>
-    <!-- 💡 ECharts 라이브러리 추가 -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         body { margin: 0; padding: 20px; background-color: #121212; color: white; font-family: sans-serif; }
         .container { max-width: 1400px; margin: 0 auto; }
@@ -19,6 +17,7 @@
         .section-box { background-color: #1e1e1e; padding: 20px 25px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
         h2 { font-size: 20px; margin-top: 0; margin-bottom: 15px; color: #e0e0e0; border-bottom: 1px solid #333; padding-bottom: 15px; }
 
+        /* 컨트롤 패널 (달력 디자인 적용) */
         .controls { background-color: #1a1a1a; padding: 15px 25px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; display: flex; gap: 30px; align-items: center; justify-content: center; }
         .controls-group { display: flex; align-items: center; gap: 10px; }
         .controls label { font-weight: bold; color: #aaaaaa; }
@@ -75,11 +74,17 @@
             </table>
         </div>
 
-        <!-- 2. 컨트롤 패널 -->
+        <!-- 2. 컨트롤 패널 (달력 포함) -->
         <div class="controls">
+            <div class="controls-group">
+                <label>조회 일자:</label>
+                <!-- 💡 드롭다운 대신 달력(date input) 사용 -->
+                <input type="date" id="datePicker" onchange="handleDateChange(this.value)" disabled>
+            </div>
             <div class="controls-group">
                 <label>👇 상세 조회할 섹터 선택:</label>
                 <select id="etfSelect">
+                    <!-- 💡 총 10개 ETF 섹터 추가 -->
                     <option value="XLK">XLK (기술주)</option>
                     <option value="XLF">XLF (금융주)</option>
                     <option value="XLV">XLV (헬스케어)</option>
@@ -92,19 +97,9 @@
                     <option value="XLB">XLB (소재)</option>
                 </select>
             </div>
-            <div class="controls-group">
-                <label>조회 일자:</label>
-                <input type="date" id="datePicker" onchange="handleDateChange(this.value)" disabled>
-            </div>
         </div>
 
-        <!-- 💡 3. 새로 추가된 차트 영역 -->
-        <div class="section-box" id="chartSection">
-            <h2 style="border-bottom: none; padding-bottom: 0;">🍩 <span id="displayEtfChart" class="pos">XLK</span> 기업 비중</h2>
-            <div id="weight-chart-container" style="width: 100%; height: 450px;"></div>
-        </div>
-
-        <!-- 4. 아랫부분: 선택된 ETF 개별 종목 상세 -->
+        <!-- 3. 아랫부분: 선택된 ETF 개별 종목 상세 -->
         <div class="section-box" id="bottomSection">
             <h2 style="border-bottom: none; padding-bottom: 0;">🏢 <span id="displayEtfBottom" class="pos">XLK</span> 개별 기업 상세 수급 내역</h2>
             <table style="margin-bottom: 0;">
@@ -132,19 +127,10 @@
         let globalMetricsData = {};
         const ETF_LIST = ["XLK", "XLF", "XLV", "XLE", "XLI", "XLC", "XLU", "XLY", "XLP", "XLB"];
         
-        let availableDatesList = []; 
+        let availableDatesList = []; // 달력 휴일 보정용 전역 변수
         let currentDetailData = []; 
         let currentSortCol = null;  
         let currentSortDir = 0;     
-
-        // 💡 ECharts 인스턴스를 담을 변수
-        let weightChart = null;
-
-        document.addEventListener("DOMContentLoaded", () => {
-            const chartDom = document.getElementById('weight-chart-container');
-            weightChart = echarts.init(chartDom);
-            window.addEventListener('resize', () => { if(weightChart) weightChart.resize(); });
-        });
 
         function formatNumber(num) { return num.toLocaleString('en-US'); }
 
@@ -170,6 +156,7 @@
                 globalMetricsData = data;
                 document.getElementById('loading').style.display = 'none';
                 
+                // 데이터가 가장 안정적인 XLK를 기준으로 가용 날짜 목록 추출
                 if(data["XLK"] && data["XLK"].history) {
                     availableDatesList = Object.keys(data["XLK"].history).sort().reverse();
                 }
@@ -177,9 +164,9 @@
                 if (availableDatesList.length > 0) {
                     const picker = document.getElementById('datePicker');
                     picker.disabled = false;
-                    picker.max = availableDatesList[0];                  
-                    picker.min = availableDatesList[availableDatesList.length - 1]; 
-                    picker.value = availableDatesList[0];                
+                    picker.max = availableDatesList[0];                  // 최신
+                    picker.min = availableDatesList[availableDatesList.length - 1]; // 과거
+                    picker.value = availableDatesList[0];                // 기본값
                     
                     updateDashboard(); 
                 } else {
@@ -190,15 +177,20 @@
                 document.getElementById('loading').innerHTML = '데이터를 불러오지 못했습니다.<br>파이썬 업데이트를 확인해주세요.';
             });
 
+        // 2. 이벤트 리스너 (ETF 선택 변경 시)
         document.getElementById('etfSelect').addEventListener('change', () => updateDashboard());
 
+        // 💡 3. 스마트 휴장일 보정 알고리즘 (날짜 선택 시 실행)
         function handleDateChange(selectedDate) {
             if (!selectedDate) return;
 
+            // 창고(availableDatesList)에 정확한 날짜가 있는지 확인
             if (availableDatesList.includes(selectedDate)) {
                 updateDashboard();
             } else {
+                // 없으면(주말, 휴장일) 가장 가까운 이전 거래일을 찾음
                 const closestPastDate = availableDatesList.find(d => d < selectedDate);
+                
                 if (closestPastDate) {
                     alert(`선택하신 ${selectedDate}은(는) 데이터가 없습니다 (휴장일/휴일 추정).\n가장 가까운 이전 거래일인 [${closestPastDate}] 데이터를 불러옵니다.`);
                     document.getElementById('datePicker').value = closestPastDate;
@@ -211,6 +203,7 @@
             }
         }
 
+        // 4. 화면 업데이트 메인 함수
         function updateDashboard() {
             const date = document.getElementById('datePicker').value;
             const selectedEtf = document.getElementById('etfSelect').value;
@@ -246,12 +239,11 @@
                 metricsTbody.appendChild(tr);
             });
 
-            // [2] 하단 표 & 차트 데이터 패치
-            document.getElementById('displayEtfChart').innerText = selectedEtf;
+            // [2] 하단 표 상세 데이터 패치
             document.getElementById('displayEtfBottom').innerText = selectedEtf;
-            
             const detailUrl = `./details/${selectedEtf}/${date}.json`;
             const tickerTbody = document.getElementById('tickerTableBody');
+            
             tickerTbody.innerHTML = "<tr><td colspan='9' style='text-align:center;'>상세 데이터를 불러오는 중...</td></tr>";
 
             currentSortCol = null;
@@ -264,86 +256,17 @@
                     return res.json();
                 })
                 .then(detailData => {
-                    // 데이터 가공
                     currentDetailData = Object.entries(detailData.ticker_details).map(([ticker, info], index) => {
                         return { ticker, info, originalIndex: index };
                     });
-                    
-                    // 💡 도넛 차트 그리기 호출
-                    renderWeightDoughnut(selectedEtf, detailData.ticker_details);
-                    
-                    // 테이블 렌더링
                     renderDetailTable(currentDetailData);
                 })
                 .catch(err => {
                     tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${selectedEtf}의 상세 데이터를 불러오지 못했습니다.</td></tr>`;
-                    if(weightChart) weightChart.clear(); // 에러 시 차트 초기화
                 });
         }
 
-        // 💡 도넛 차트 렌더링 함수
-        function renderWeightDoughnut(etfName, tickersObj) {
-            if (!weightChart) return;
-
-            let mainData = [];
-            let othersWeight = 0;
-
-            // 비중 기준으로 내림차순 정렬
-            const sortedData = Object.entries(tickersObj)
-                .map(([ticker, info]) => ({ ticker, weight: info.weight_current }))
-                .sort((a, b) => b.weight - a.weight);
-
-            sortedData.forEach(item => {
-                const w = item.weight;
-                if (w > 0.5) {
-                    let dataItem = { name: item.ticker, value: Number(w.toFixed(2)) };
-                    if (w < 2) {
-                        dataItem.label = { show: false };      
-                        dataItem.labelLine = { show: false };  
-                    }
-                    mainData.push(dataItem);
-                } else {
-                    othersWeight += w;
-                }
-            });
-
-            // 0.5% 이하 기타 항목 묶기
-            if (othersWeight > 0) {
-                let othersItem = { 
-                    name: '기타 (0.5% 이하)', 
-                    value: Number(othersWeight.toFixed(2)),
-                    itemStyle: { color: '#444444' }
-                };
-                if (othersWeight < 2) {
-                    othersItem.label = { show: false };
-                    othersItem.labelLine = { show: false };
-                }
-                mainData.push(othersItem);
-            }
-
-            weightChart.setOption({
-                graphic: [{
-                    type: 'text',
-                    left: 'center',
-                    top: 'center',
-                    style: {
-                        text: etfName,
-                        fontSize: 60,
-                        fontWeight: 'bold',
-                        fill: '#e0e0e0'
-                    }
-                }],
-                tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
-                series: [{
-                    name: `${etfName} 비중`, type: 'pie', radius: ['50%', '80%'], avoidLabelOverlap: true,
-                    itemStyle: { borderRadius: 6, borderColor: '#1e1e1e', borderWidth: 2 },
-                    label: { show: true, position: 'outside', color: '#e0e0e0', fontSize: 12, formatter: '{b}\n{c}%' },
-                    labelLine: { show: true, length: 15, length2: 10 },
-                    data: mainData
-                }]
-            });
-        }
-
+        // 하단 상세 테이블 렌더링
         function renderDetailTable(dataArray) {
             const tbody = document.getElementById('tickerTableBody');
             tbody.innerHTML = "";
@@ -374,6 +297,7 @@
             });
         }
 
+        // 정렬 기능
         function sortTable(colKey) {
             if (currentDetailData.length === 0) return;
 
