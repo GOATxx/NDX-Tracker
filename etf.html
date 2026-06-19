@@ -283,7 +283,7 @@
                     renderDetailTable(currentDetailData);
                 })
                 .catch(err => {
-                    tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${selectedEtf}의 상세 데이터를 불러오지 못했습니다. 파이썬 스크립트로 해당 ETF 데이터를 생성했는지 확인하세요.</td></tr>`;
+                    tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${detailUrl}의 상세 데이터를 불러오지 못했습니다. 파이썬 스크립트로 해당 ETF 데이터를 생성했는지 확인하세요.</td></tr>`;
                     if(weightChart) weightChart.clear();
                 });
         }
