@@ -144,7 +144,7 @@
         <!-- 예외 안내 메시지 박스 -->
         <div id="dateNotice"></div>
 
-        <!-- 3. [추가] 중간 부분: ECharts 비중 분배 도넛 차트 상자 -->
+        <!-- 3. 중간 부분: ECharts 비중 분배 도넛 차트 상자 -->
         <div class="section-box" id="chartSection" style="display: none; background-color: #1a1a1a;">
             <h2>🍕 <span id="displayEtfChart" class="pos">XLK</span> 보유 비중 포트폴리오</h2>
             <div id="weight-chart-container"></div>
@@ -368,8 +368,8 @@
                     // 테이블 렌더링 수행
                     applySortAndRender();
                     
-                    // ECharts 도넛 차트 그리기
-                    renderEChartsDonut(detailDataList);
+                    // ECharts 도넛 차트 그리기 (선택된 ETF 티커 전달)
+                    renderEChartsDonut(detailDataList, selectedEtf);
                 })
                 .catch(err => {
                     tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${selectedEtf}의 상세 수급 내역 파일이 서버에 존재하지 않습니다.</td></tr>`;
@@ -452,12 +452,12 @@
                     <td class="${flowClass}">${item.display.flow_ratio_pct}</td>
                     <td class="neutral">${weightVal}</td>
                 `;
-                tickerTbody.appendChild(tr);
+                tbody = tickerTbody.appendChild(tr);
             });
         }
 
-        // 6. [ECharts 이식] 도넛 차트 렌더링 함수
-        function renderEChartsDonut(list) {
+        // 6. [ECharts] 도넛 차트 및 정중앙 텍스트 타이틀 설정 함수
+        function renderEChartsDonut(list, selectedEtf) {
             const chartDom = document.getElementById('weight-chart-container');
             const chartBox = document.getElementById('chartSection');
 
@@ -475,14 +475,12 @@
             let mainData = [];
             let othersWeight = 0;
 
-            // 비중 내림차순 정렬
             const sortedData = [...list].sort((a, b) => b.weight_current - a.weight_current);
 
             sortedData.forEach(item => {
                 const w = item.weight_current;
                 if (w && w >= 0.5) {
                     let dataItem = { name: item.ticker, value: Number(w.toFixed(2)) };
-                    // 2% 미만 소형 종목은 혼잡 방지를 위해 차트 자체 지시선 라벨 생략
                     if (w < 2) {
                         dataItem.label = { show: false };      
                         dataItem.labelLine = { show: false };  
@@ -493,7 +491,6 @@
                 }
             });
 
-            // 0.5% 미만 기타 합산 처리
             if (othersWeight > 0) {
                 let othersItem = { 
                     name: '기타 (0.5% 이하)', 
@@ -507,8 +504,19 @@
                 mainData.push(othersItem);
             }
 
-            // 전달받은 index.html의 QQQ 비중 ECharts 디자인 속성 완벽 대입
             const option = {
+                // 도넛 차트 정중앙에 ETF 티커 텍스트 배치
+                title: {
+                    text: selectedEtf,
+                    left: 'center',
+                    top: 'center',
+                    textStyle: {
+                        color: '#00b853',
+                        fontSize: 32,
+                        fontWeight: 'bold',
+                        fontFamily: 'sans-serif'
+                    }
+                },
                 tooltip: { 
                     trigger: 'item', 
                     formatter: function (params) {
@@ -518,7 +526,7 @@
                 series: [{
                     name: '보유 비중',
                     type: 'pie',
-                    radius: ['50%', '80%'], // 도넛 형태
+                    radius: ['50%', '80%'],
                     avoidLabelOverlap: true,
                     itemStyle: { 
                         borderRadius: 6, 
@@ -544,7 +552,6 @@
             weightChartInstance.setOption(option, true);
         }
 
-        // 창 크기 변경 대응 반응형 바인딩
         window.addEventListener('resize', () => {
             if (weightChartInstance) {
                 weightChartInstance.resize();
