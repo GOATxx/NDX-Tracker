@@ -120,20 +120,26 @@
     </div>
 
     <script>
+        // 전역 변수
         let globalMetricsData = {};
-        const ETF_LIST = ["XLK", "XLF", "XLV", "XLE"];
+        const ETF_LIST = ["XLK", "XLF", "XLV", "XLE", "XLI", "XLC", "XLU", "XLY", "XLP", "XLB"];
+        
+        // 🚨 본인의 GitHub 데이터 경로 (반드시 맞게 수정하세요!)
+        const baseUrl = 'https://github.com/GOATxx/NDX-Tracker/edit/main/details/';
+        
+        let availableDatesList = []; 
+        let currentDetailData = []; 
+        let currentSortCol = null;  
+        let currentSortDir = 0;     
+        let weightChart = null; 
 
-        // 💡 하단 상세 테이블 정렬을 위한 전역 변수
-        let currentDetailData = []; // 로드된 종목 데이터 배열
-        let currentSortCol = null;  // 현재 정렬 중인 열
-        let currentSortDir = 0;     // 0: 기본, 1: 내림차순, 2: 오름차순
+        document.addEventListener("DOMContentLoaded", () => {
+            const chartDom = document.getElementById('weight-chart-container');
+            weightChart = echarts.init(chartDom);
+            window.addEventListener('resize', () => { if(weightChart) weightChart.resize(); });
+        });
 
-        // 숫자에 콤마 찍어주는 헬퍼
-        function formatNumber(num) {
-            return num.toLocaleString('en-US');
-        }
-
-        // 색상 판별 헬퍼 함수
+        function formatNumber(num) { return num.toLocaleString('en-US'); }
         function getColorClass(value) {
             const strVal = String(value);
             if (strVal.includes('+') || strVal.includes('유입')) return 'pos';
@@ -146,8 +152,8 @@
             return 'neutral';
         }
 
-        // 1. 초기 데이터 로드
-        fetch('./XL_metrics.json')
+        // 💡 1. 여기서 baseUrl 사용하도록 변경
+        fetch(baseUrl + 'XL_metrics.json')
             .then(res => {
                 if (!res.ok) throw new Error("메트릭스 파일 없음");
                 return res.json();
@@ -220,11 +226,12 @@
                 metricsTbody.appendChild(tr);
             });
 
-            // [2] 하단 표 데이터 패치
+            // 💡 2. 하단 상세 표 패치 시에도 baseUrl 사용하도록 변경
+            document.getElementById('displayEtfChart').innerText = selectedEtf;
             document.getElementById('displayEtfBottom').innerText = selectedEtf;
-            const detailUrl = `./details/${selectedEtf}/${date}.json`;
-            const tickerTbody = document.getElementById('tickerTableBody');
             
+            const detailUrl = `${baseUrl}details/${selectedEtf}/${date}.json`;
+            const tickerTbody = document.getElementById('tickerTableBody');
             tickerTbody.innerHTML = "<tr><td colspan='9' style='text-align:center;'>상세 데이터를 불러오는 중...</td></tr>";
 
             // 정렬 상태 초기화
