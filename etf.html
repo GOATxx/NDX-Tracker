@@ -277,7 +277,7 @@
                     <td class="${shareChangeClass}">${signChange}${formatNumber(info.shares_change)}주</td>
                     <td class="bold-white">${info.display.holdings_value}</td>
                     <td class="${flowClass}">${info.display.dollar_flow}</td>
-                    <td class="${flowClass}">${info.flow_ratio_pct > 0 ? '+' : ''}${info.flow_ratio_pct.toFixed(2)}%</td>
+                    <td class="${flowClass}">${info.display.flow_ratio_pct > 0 ? '+' : ''}${info.display.flow_ratio_pct.toFixed(2)}%</td>
                     <td class="pos">${info.weight_current.toFixed(2)}%</td>
                 `;
                 tbody.appendChild(tr);
