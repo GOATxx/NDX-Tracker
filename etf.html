@@ -78,10 +78,6 @@
         <!-- 2. 컨트롤 패널 -->
         <div class="controls">
             <div class="controls-group">
-                <label>조회 일자:</label>
-                <input type="date" id="datePicker" onchange="handleDateChange(this.value)" disabled>
-            </div>
-            <div class="controls-group">
                 <label>👇 상세 조회할 섹터 선택:</label>
                 <select id="etfSelect">
                     <option value="XLK">XLK (기술주)</option>
@@ -95,6 +91,10 @@
                     <option value="XLP">XLP (필수소비재)</option>
                     <option value="XLB">XLB (소재)</option>
                 </select>
+            </div>
+            <div class="controls-group">
+                <label>조회 일자:</label>
+                <input type="date" id="datePicker" onchange="handleDateChange(this.value)" disabled>
             </div>
         </div>
 
