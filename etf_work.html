@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETF 섹터 수급 대시보드</title>
+    <style>
+        body { margin: 0; padding: 20px; background-color: #121212; color: white; font-family: sans-serif; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; color: #aaaaaa; z-index: 1000; }
+        
+        /* 탭 디자인 */
+        .tab-container { display: flex; border-bottom: 2px solid #333; margin-bottom: 20px; }
+        .tab-button { background: none; border: none; color: #aaaaaa; padding: 15px 30px; font-size: 18px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
+        .tab-button:hover { color: white; background-color: #1e1e1e; }
+        .tab-button.active { color: #00b853; border-bottom: 3px solid #00b853; }
+
+        /* 섹션 공통 */
+        .section-box { background-color: #1e1e1e; padding: 20px 25px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
+        h2 { font-size: 20px; margin-top: 0; margin-bottom: 15px; color: #e0e0e0; border-bottom: 1px solid #333; padding-bottom: 15px; }
+
+        /* 컨트롤 패널 */
+        .controls { background-color: #1a1a1a; padding: 15px 25px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; display: flex; gap: 30px; align-items: center; justify-content: center; }
+        .controls-group { display: flex; align-items: center; gap: 10px; }
+        .controls label { font-weight: bold; color: #aaaaaa; }
+        .controls select { padding: 8px 15px; background-color: #121212; color: #00b853; border: 1px solid #333; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; outline: none; }
+        .controls select:hover { border-color: #00b853; }
+
+        /* 테이블 디자인 */
+        table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px 15px; text-align: center; border-bottom: 1px solid #2d2d2d; }
+        th { background-color: #2a2a2a; color: #aaaaaa; font-weight: bold; }
+        td:first-child, th:first-child { text-align: left; } /* 첫 열(종목명/섹터)은 왼쪽 정렬 */
+        tr:hover { background-color: #252525; }
+        
+        /* 텍스트 컬러 속성 */
+        .pos { color: #00b853; font-weight: bold; }
+        .neg { color: #f03b20; font-weight: bold; }
+        .neutral { color: #aaaaaa; font-weight: bold; }
+        .bold-white { color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="loading">데이터를 불러오는 중입니다...</div>
+
+    <div class="container">
+        <!-- 네비게이션 탭 -->
+        <div class="tab-container">
+            <button class="tab-button" onclick="location.href='index.html'">◀ 나스닥 메인으로 돌아가기</button>
+            <button class="tab-button active">🔥 ETF 섹터 정밀 수급</button>
+        </div>
+
+        <!-- 1. 윗부분: 모든 ETF 지표 요약 표 -->
+        <div class="section-box" id="topSection">
+            <h2>📊 전체 섹터 ETF 수급 지표 비교 (<span id="displayDateTop" class="pos">-</span> 기준)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>섹터 ETF</th>
+                        <th>당일 종가 (증감)</th>
+                        <th>자금 유출입 (Fund Flow)</th>
+                        <th>수급 강도 (20D)</th>
+                        <th>상대 거래량 (RVOL)</th>
+                        <th>수급 확산도</th>
+                        <th>상대 강도 (vs SPY)</th>
+                    </tr>
+                </thead>
+                <tbody id="metricsTableBody">
+                    <tr><td colspan="7">데이터를 불러오는 중입니다...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 2. 컨트롤 패널 (상단 표 아래로 이동) -->
+        <div class="controls">
+            <div class="controls-group">
+                <label>조회 일자:</label>
+                <select id="dateSelect"><option>로딩 중...</option></select>
+            </div>
+            <div class="controls-group">
+                <label>👇 상세 조회할 섹터 선택:</label>
+                <select id="etfSelect">
+                    <option value="XLK">XLK (기술주)</option>
+                    <option value="XLF">XLF (금융주)</option>
+                    <option value="XLV">XLV (헬스케어)</option>
+                    <option value="XLE">XLE (에너지)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 3. 아랫부분: 선택된 ETF 개별 종목 상세 -->
+        <div class="section-box" id="bottomSection">
+            <h2 style="border-bottom: none; padding-bottom: 0;">🏢 <span id="displayEtfBottom" class="pos">XLK</span> 개별 기업 상세 수급 내역</h2>
+            <table style="margin-bottom: 0;">
+                <thead>
+                    <tr>
+                        <th>티커</th>
+                        <th>보유 주식 수</th>
+                        <th>당일 종가</th>
+                        <th>전일비 증감률</th>
+                        <th>자금 유출입액 ($)</th>
+                        <th>유입 비율 (vs보유금액)</th>
+                    </tr>
+                </thead>
+                <tbody id="tickerTableBody">
+                    <tr><td colspan="6">데이터를 불러오는 중입니다...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let globalMetricsData = {};
+        const ETF_LIST = ["XLK", "XLF", "XLV", "XLE"];
+
+        // 색상 판별 헬퍼 함수
+        function getColorClass(value) {
+            const strVal = String(value);
+            if (strVal.includes('+') || strVal.includes('유입')) return 'pos';
+            if (strVal.includes('-') || strVal.includes('유출')) return 'neg';
+            return 'neutral';
+        }
+
+        // 1. 페이지 로드 시 XL_metrics.json 가져오기
+        fetch('./XL_metrics.json')
+            .then(res => {
+                if (!res.ok) throw new Error("메트릭스 파일 없음");
+                return res.json();
+            })
+            .then(data => {
+                globalMetricsData = data;
+                document.getElementById('loading').style.display = 'none';
+                
+                // 날짜 목록은 보통 데이터가 가장 많은 XLK 기준으로 뽑습니다
+                updateDateDropdown('XLK'); 
+            })
+            .catch(err => {
+                document.getElementById('loading').innerHTML = '데이터를 불러오지 못했습니다.<br>파이썬 업데이트를 확인해주세요.';
+                console.error(err);
+            });
+
+        // 2. 이벤트 리스너
+        document.getElementById('etfSelect').addEventListener('change', () => {
+            updateDashboard(); // ETF만 변경되면 하단 상세 표만 다시 렌더링
+        });
+        document.getElementById('dateSelect').addEventListener('change', () => {
+            updateDashboard(); // 날짜가 변경되면 상단 표, 하단 표 모두 다시 렌더링
+        });
+
+        // 3. 날짜 드롭다운 세팅
+        function updateDateDropdown(baseEtf) {
+            const dateSelect = document.getElementById('dateSelect');
+            dateSelect.innerHTML = ""; 
+
+            if (!globalMetricsData[baseEtf] || !globalMetricsData[baseEtf].history) {
+                dateSelect.innerHTML = "<option>데이터 없음</option>";
+                return;
+            }
+
+            const dates = Object.keys(globalMetricsData[baseEtf].history).sort().reverse();
+            dates.forEach(date => {
+                const option = document.createElement('option');
+                option.value = date;
+                option.textContent = date;
+                dateSelect.appendChild(option);
+            });
+
+            updateDashboard(); 
+        }
+
+        // 4. 화면 업데이트 (상단 전체 비교 표 + 하단 상세 표)
+        function updateDashboard() {
+            const date = document.getElementById('dateSelect').value;
+            const selectedEtf = document.getElementById('etfSelect').value;
+
+            if (date === "데이터 없음") return;
+
+            // --- [1] 상단 표 (Metrics - 전체 ETF 비교) 업데이트 ---
+            document.getElementById('displayDateTop').innerText = date;
+            const metricsTbody = document.getElementById('metricsTableBody');
+            metricsTbody.innerHTML = ""; // 기존 표 지우기
+
+            ETF_LIST.forEach(etf => {
+                const tr = document.createElement('tr');
+                const etfData = globalMetricsData[etf]?.history[date];
+
+                if (etfData) {
+                    const priceClass = etfData.ETF_Price ? getColorClass(etfData.ETF_Price.display) : 'neutral';
+                    const flowClass = getColorClass(etfData.Fund_Flow.display);
+                    const rsClass = getColorClass(etfData.RS_Momentum.display);
+
+                    tr.innerHTML = `
+                        <td class="bold-white">${etf}</td>
+                        <td class="${priceClass}">${etfData.ETF_Price ? etfData.ETF_Price.display : 'N/A'}</td>
+                        <td class="${flowClass}">${etfData.Fund_Flow.display}</td>
+                        <td>${etfData.Fund_Flow_Intensity_20D.display}</td>
+                        <td>${etfData.Relative_Volume.display}</td>
+                        <td class="pos">${etfData.Weighted_Breadth.display}</td>
+                        <td class="${rsClass}">${etfData.RS_Momentum.display}</td>
+                    `;
+                } else {
+                    // 휴일 등으로 특정 ETF 데이터가 비어있을 경우
+                    tr.innerHTML = `<td class="bold-white">${etf}</td><td colspan="6" class="neutral">해당 일자 데이터 없음</td>`;
+                }
+                metricsTbody.appendChild(tr);
+            });
+
+            // --- [2] 하단 표 (Details - 선택된 ETF 개별 종목) 지연 로딩 ---
+            document.getElementById('displayEtfBottom').innerText = selectedEtf;
+            const detailUrl = `./details/${selectedEtf}/${date}.json`;
+            const tickerTbody = document.getElementById('tickerTableBody');
+            
+            tickerTbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>상세 데이터를 불러오는 중...</td></tr>";
+
+            fetch(detailUrl)
+                .then(res => {
+                    if (!res.ok) throw new Error("상세 파일 없음");
+                    return res.json();
+                })
+                .then(detailData => {
+                    tickerTbody.innerHTML = ""; 
+                    const tickers = detailData.ticker_details;
+
+                    for (const [ticker, info] of Object.entries(tickers)) {
+                        const tr = document.createElement('tr');
+                        
+                        const pctClass = getColorClass(info.display.price_change_pct);
+                        const flowClass = getColorClass(info.display.dollar_flow);
+
+                        tr.innerHTML = `
+                            <td class="bold-white">${ticker}</td>
+                            <td class="neutral">${info.display.shares_current}</td>
+                            <td>${info.display.price}</td>
+                            <td class="${pctClass}">${info.display.price_change_pct}</td>
+                            <td class="${flowClass}">${info.display.dollar_flow}</td>
+                            <td class="${flowClass}">${info.display.flow_ratio_pct}</td>
+                        `;
+                        tickerTbody.appendChild(tr);
+                    }
+                })
+                .catch(err => {
+                    tickerTbody.innerHTML = `<tr><td colspan='6' class='neg' style='text-align:center;'>${selectedEtf}의 상세 데이터를 불러오지 못했습니다.</td></tr>`;
+                });
+        }
+    </script>
+</body>
+</html>
