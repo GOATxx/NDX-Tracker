@@ -33,6 +33,10 @@
         td:first-child, th:first-child { text-align: left; } /* 첫 열(종목명/섹터)은 왼쪽 정렬 */
         tr:hover { background-color: #252525; }
         
+        /* 정렬 헤더 속성 */
+        th.sortable { cursor: pointer; user-select: none; transition: background-color 0.2s; }
+        th.sortable:hover { background-color: #3a3a3a; color: #00b853; }
+
         /* 텍스트 컬러 속성 */
         .pos { color: #00b853; font-weight: bold; }
         .neg { color: #f03b20; font-weight: bold; }
@@ -94,16 +98,16 @@
             <h2 style="border-bottom: none; padding-bottom: 0;">🏢 <span id="displayEtfBottom" class="pos">XLK</span> 개별 기업 상세 수급 내역</h2>
             <table style="margin-bottom: 0;">
                 <thead>
-                    <tr>
-                        <th>티커</th>
-                        <th>보유 비중</th>
-                        <th>보유 주식 수</th>
-                        <th>주식 수 변동</th>
-                        <th>보유 가치</th>
-                        <th>당일 종가</th>
-                        <th>전일비 증감률</th>
-                        <th>자금 유출입액 ($)</th>
-                        <th>유입 비율 (vs보유금액)</th>
+                    <tr id="tickerTableHeadRow">
+                        <th class="sortable" data-sort="ticker">티커 ⇅</th>
+                        <th class="sortable" data-sort="price">당일 종가 ⇅</th>
+                        <th class="sortable" data-sort="price_change_pct">전일비 증감률 ⇅</th>
+                        <th class="sortable" data-sort="shares_current">보유 주식 수 ⇅</th>
+                        <th class="sortable" data-sort="shares_change">주식 수 변동 ⇅</th>
+                        <th class="sortable" data-sort="holdings_value">보유 가치 ⇅</th>
+                        <th class="sortable" data-sort="dollar_flow">자금 유출입액 ($) ⇅</th>
+                        <th class="sortable" data-sort="flow_ratio_pct">유입 비율 ⇅</th>
+                        <th class="sortable" data-sort="weight_current">보유 비중 ⇅</th>
                     </tr>
                 </thead>
                 <tbody id="tickerTableBody">
@@ -116,6 +120,12 @@
     <script>
         let globalMetricsData = {};
         const ETF_LIST = ["XLK", "XLF", "XLV", "XLE"];
+
+        // 정렬 상태 관련 변수
+        let detailDataList = [];
+        let defaultOrderList = [];
+        let sortKey = null;
+        let sortDirection = 'none'; // 'none' (기본값), 'desc' (내림차순), 'asc' (오름차순)
 
         // 색상 판별 헬퍼 함수
         function getColorClass(value) {
@@ -143,12 +153,20 @@
                 console.error(err);
             });
 
-        // 2. 이벤트 리스너
+        // 2. 이벤트 리스너 설정
         document.getElementById('etfSelect').addEventListener('change', () => {
             updateDashboard(); // ETF만 변경되면 하단 상세 표만 다시 렌더링
         });
         document.getElementById('dateSelect').addEventListener('change', () => {
             updateDashboard(); // 날짜가 변경되면 상단 표, 하단 표 모두 다시 렌더링
+        });
+
+        // 헤더 클릭 정렬 이벤트 리스너 추가
+        document.querySelectorAll('#tickerTableHeadRow th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.getAttribute('data-sort');
+                handleSort(key);
+            });
         });
 
         // 3. 날짜 드롭다운 세팅
@@ -203,7 +221,6 @@
                         <td class="${rsClass}">${etfData.RS_Momentum.display}</td>
                     `;
                 } else {
-                    // 휴일 등으로 특정 ETF 데이터가 비어있을 경우
                     tr.innerHTML = `<td class="bold-white">${etf}</td><td colspan="6" class="neutral">해당 일자 데이터 없음</td>`;
                 }
                 metricsTbody.appendChild(tr);
@@ -216,52 +233,165 @@
             
             tickerTbody.innerHTML = "<tr><td colspan='9' style='text-align:center;'>상세 데이터를 불러오는 중...</td></tr>";
 
+            // 조회 조건 변경 시 정렬 상태 초기화
+            sortKey = null;
+            sortDirection = 'none';
+
             fetch(detailUrl)
                 .then(res => {
                     if (!res.ok) throw new Error("상세 파일 없음");
                     return res.json();
                 })
                 .then(detailData => {
-                    tickerTbody.innerHTML = ""; 
                     const tickers = detailData.ticker_details;
+                    detailDataList = [];
 
+                    // 데이터 파싱 및 가공 (정렬을 위해 정밀 숫자 타입 확보)
                     for (const [ticker, info] of Object.entries(tickers)) {
-                        const tr = document.createElement('tr');
-                        
-                        const pctClass = getColorClass(info.display.price_change_pct);
-                        const flowClass = getColorClass(info.display.dollar_flow);
+                        const price = info.price || 0;
+                        const shares_current = info.shares_current || 0;
 
-                        // 보유 비중 (weight_current) 포맷팅
-                        const weightVal = info.weight_current !== undefined ? info.weight_current.toFixed(2) + '%' : '0.00%';
+                        // 보유 가치 가공 수식 (주식수 * 종가)
+                        const holdings_value = shares_current * price;
 
-                        // 주식 수 변동 (shares_change) 상태 판별 및 포맷팅
-                        let sharesChangeText = '변동 없음';
-                        let sharesChangeClass = 'neutral';
-                        if (info.shares_change > 0) {
-                            sharesChangeText = '+' + info.shares_change.toLocaleString() + '주';
-                            sharesChangeClass = 'pos';
-                        } else if (info.shares_change < 0) {
-                            sharesChangeText = info.shares_change.toLocaleString() + '주';
-                            sharesChangeClass = 'neg';
+                        // 유입 비율 수치 추출
+                        let flow_ratio_pct = 0;
+                        if (info.display && info.display.flow_ratio_pct) {
+                            flow_ratio_pct = parseFloat(info.display.flow_ratio_pct.replace(/[^0-9.-]/g, '')) || 0;
                         }
 
-                        tr.innerHTML = `
-                            <td class="bold-white">${ticker}</td>
-                            <td class="neutral">${weightVal}</td>
-                            <td class="neutral">${info.display.shares_current}</td>
-                            <td class="${sharesChangeClass}">${sharesChangeText}</td>
-                            <td class="neutral">${info.display.holdings_value || 'N/A'}</td>
-                            <td>${info.display.price}</td>
-                            <td class="${pctClass}">${info.display.price_change_pct}</td>
-                            <td class="${flowClass}">${info.display.dollar_flow}</td>
-                            <td class="${flowClass}">${info.display.flow_ratio_pct}</td>
-                        `;
-                        tickerTbody.appendChild(tr);
+                        detailDataList.push({
+                            ticker: ticker,
+                            price: price,
+                            price_change_pct: info.price_change_pct || 0,
+                            shares_current: shares_current,
+                            shares_change: info.shares_change || 0,
+                            holdings_value: holdings_value,
+                            dollar_flow: info.dollar_flow || 0,
+                            flow_ratio_pct: flow_ratio_pct,
+                            weight_current: info.weight_current || 0,
+                            display: info.display
+                        });
                     }
+
+                    // 기본 순서 백업 생성
+                    defaultOrderList = [...detailDataList];
+
+                    // 테이블 렌더링
+                    applySortAndRender();
                 })
                 .catch(err => {
                     tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${selectedEtf}의 상세 데이터를 불러오지 못했습니다.</td></tr>`;
+                    console.error(err);
                 });
+        }
+
+        // 5. 정렬 핸들러 및 렌더링 로직
+        function handleSort(key) {
+            if (sortKey === key) {
+                if (sortDirection === 'none') {
+                    sortDirection = 'desc';
+                } else if (sortDirection === 'desc') {
+                    sortDirection = 'asc';
+                } else {
+                    sortDirection = 'none';
+                    sortKey = null;
+                }
+            } else {
+                sortKey = key;
+                sortDirection = 'desc'; // 새로운 열 선택 시 내림차순 정렬 우선 수행
+            }
+            applySortAndRender();
+        }
+
+        function applySortAndRender() {
+            let listToSort = [...detailDataList];
+
+            if (sortKey && sortDirection !== 'none') {
+                listToSort.sort((a, b) => {
+                    let valA = a[sortKey];
+                    let valB = b[sortKey];
+
+                    if (sortKey === 'ticker') {
+                        return sortDirection === 'asc' 
+                            ? valA.localeCompare(valB) 
+                            : valB.localeCompare(valA);
+                    }
+                    return sortDirection === 'asc' ? valA - valB : valB - valA;
+                });
+            } else {
+                listToSort = [...defaultOrderList]; // 기본 정렬 복원
+            }
+
+            renderTickerTable(listToSort);
+            updateHeaderArrows();
+        }
+
+        function renderTickerTable(list) {
+            const tickerTbody = document.getElementById('tickerTableBody');
+            tickerTbody.innerHTML = "";
+
+            list.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                const pctClass = getColorClass(item.display.price_change_pct);
+                const flowClass = getColorClass(item.display.dollar_flow);
+
+                // 보유 비중 가공
+                const weightVal = item.weight_current !== undefined ? item.weight_current.toFixed(2) + '%' : '0.00%';
+
+                // 주식 수 변동 가공
+                let sharesChangeText = '변동 없음';
+                let sharesChangeClass = 'neutral';
+                if (item.shares_change > 0) {
+                    sharesChangeText = '+' + item.shares_change.toLocaleString() + '주';
+                    sharesChangeClass = 'pos';
+                } else if (item.shares_change < 0) {
+                    sharesChangeText = item.shares_change.toLocaleString() + '주';
+                    sharesChangeClass = 'neg';
+                }
+
+                tr.innerHTML = `
+                    <td class="bold-white">${item.ticker}</td>
+                    <td>${item.display.price}</td>
+                    <td class="${pctClass}">${item.display.price_change_pct}</td>
+                    <td class="neutral">${item.display.shares_current}</td>
+                    <td class="${sharesChangeClass}">${sharesChangeText}</td>
+                    <td class="neutral">${item.display.holdings_value || 'N/A'}</td>
+                    <td class="${flowClass}">${item.display.dollar_flow}</td>
+                    <td class="${flowClass}">${item.display.flow_ratio_pct}</td>
+                    <td class="neutral">${weightVal}</td>
+                `;
+                tickerTbody.appendChild(tr);
+            });
+        }
+
+        // 헤더 정렬 방향 표시 변경 함수
+        function updateHeaderArrows() {
+            const headers = document.querySelectorAll('#tickerTableHeadRow th.sortable');
+            headers.forEach(th => {
+                const key = th.getAttribute('data-sort');
+                if (!key) return;
+                
+                // 순수 텍스트 추출 (기존 정렬 화살표 문자 제거)
+                let baseText = th.innerText.replace(/ [▲▼⇅]/g, '');
+                
+                if (sortKey === key) {
+                    if (sortDirection === 'asc') {
+                        th.innerText = baseText + ' ▲';
+                        th.style.color = '#00b853';
+                    } else if (sortDirection === 'desc') {
+                        th.innerText = baseText + ' ▼';
+                        th.style.color = '#00b853';
+                    } else {
+                        th.innerText = baseText + ' ⇅';
+                        th.style.color = '#aaaaaa';
+                    }
+                } else {
+                    th.innerText = baseText + ' ⇅';
+                    th.style.color = '#aaaaaa';
+                }
+            });
         }
     </script>
 </body>
