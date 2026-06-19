@@ -4,40 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ETF 섹터 수급 대시보드</title>
+    <!-- 💡 ECharts 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         body { margin: 0; padding: 20px; background-color: #121212; color: white; font-family: sans-serif; }
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1400px; margin: 0 auto; }
         #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; color: #aaaaaa; z-index: 1000; }
         
-        /* 탭 디자인 */
         .tab-container { display: flex; border-bottom: 2px solid #333; margin-bottom: 20px; }
         .tab-button { background: none; border: none; color: #aaaaaa; padding: 15px 30px; font-size: 18px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
         .tab-button:hover { color: white; background-color: #1e1e1e; }
         .tab-button.active { color: #00b853; border-bottom: 3px solid #00b853; }
 
-        /* 섹션 공통 */
         .section-box { background-color: #1e1e1e; padding: 20px 25px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
         h2 { font-size: 20px; margin-top: 0; margin-bottom: 15px; color: #e0e0e0; border-bottom: 1px solid #333; padding-bottom: 15px; }
 
-        /* 컨트롤 패널 */
         .controls { background-color: #1a1a1a; padding: 15px 25px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; display: flex; gap: 30px; align-items: center; justify-content: center; }
         .controls-group { display: flex; align-items: center; gap: 10px; }
         .controls label { font-weight: bold; color: #aaaaaa; }
-        .controls select { padding: 8px 15px; background-color: #121212; color: #00b853; border: 1px solid #333; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; outline: none; }
-        .controls select:hover { border-color: #00b853; }
+        .controls select, .controls input[type="date"] { padding: 8px 15px; background-color: #121212; color: #00b853; border: 1px solid #333; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; outline: none; }
+        .controls select:hover, .controls input[type="date"]:hover { border-color: #00b853; }
+        .controls input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
         /* 테이블 디자인 */
-        table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px 15px; text-align: center; border-bottom: 1px solid #2d2d2d; }
-        th { background-color: #2a2a2a; color: #aaaaaa; font-weight: bold; }
-        td:first-child, th:first-child { text-align: left; } /* 첫 열(종목명/섹터)은 왼쪽 정렬 */
+        table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; font-size: 14.5px; }
+        th, td { padding: 12px 10px; text-align: center; border-bottom: 1px solid #2d2d2d; }
+        td:first-child, th:first-child { text-align: left; padding-left: 20px; } 
         tr:hover { background-color: #252525; }
         
-        /* 정렬 헤더 속성 */
-        th.sortable { cursor: pointer; user-select: none; transition: background-color 0.2s; }
-        th.sortable:hover { background-color: #3a3a3a; color: #00b853; }
+        th.sortable { background-color: #2a2a2a; color: #aaaaaa; font-weight: bold; cursor: pointer; user-select: none; transition: background 0.2s; }
+        th.sortable:hover { background-color: #333; color: white; }
+        th.sort-desc::after { content: ' ▼'; font-size: 11px; color: #00b853; }
+        th.sort-asc::after { content: ' ▲'; font-size: 11px; color: #f03b20; }
 
-        /* 텍스트 컬러 속성 */
         .pos { color: #00b853; font-weight: bold; }
         .neg { color: #f03b20; font-weight: bold; }
         .neutral { color: #aaaaaa; font-weight: bold; }
@@ -61,13 +60,13 @@
             <table>
                 <thead>
                     <tr>
-                        <th>섹터 ETF</th>
-                        <th>당일 종가 (증감)</th>
-                        <th>자금 유출입 (Fund Flow)</th>
-                        <th>수급 강도 (20D)</th>
-                        <th>상대 거래량 (RVOL)</th>
-                        <th>수급 확산도</th>
-                        <th>상대 강도 (vs SPY)</th>
+                        <th style="background-color: #2a2a2a; color: #aaaaaa;">섹터 ETF</th>
+                        <th style="background-color: #2a2a2a; color: #aaaaaa;">당일 종가 (증감)</th>
+                        <th style="background-color: #2a2a2a; color: #aaaaaa;">자금 유출입 (Fund Flow)</th>
+                        <th style="background-color: #2a2a2a; color: #aaaaaa;">수급 강도 (20D)</th>
+                        <th style="background-color: #2a2a2a; color: #aaaaaa;">상대 거래량 (RVOL)</th>
+                        <th style="background-color: #2a2a2a; color: #aaaaaa;">수급 확산도</th>
+                        <th style="background-color: #2a2a2a; color: #aaaaaa;">상대 강도 (vs SPY)</th>
                     </tr>
                 </thead>
                 <tbody id="metricsTableBody">
@@ -76,11 +75,11 @@
             </table>
         </div>
 
-        <!-- 2. 컨트롤 패널 (상단 표 아래로 이동) -->
+        <!-- 2. 컨트롤 패널 -->
         <div class="controls">
             <div class="controls-group">
                 <label>조회 일자:</label>
-                <select id="dateSelect"><option>로딩 중...</option></select>
+                <input type="date" id="datePicker" onchange="handleDateChange(this.value)" disabled>
             </div>
             <div class="controls-group">
                 <label>👇 상세 조회할 섹터 선택:</label>
@@ -90,7 +89,7 @@
                     <option value="XLV">XLV (헬스케어)</option>
                     <option value="XLE">XLE (에너지)</option>
                     <option value="XLI">XLI (산업재)</option>
-                    <option value="XLC">XLC (커뮤니케이션)</option>
+                    <option value="XLC">XLC (통신/미디어)</option>
                     <option value="XLU">XLU (유틸리티)</option>
                     <option value="XLY">XLY (임의소비재)</option>
                     <option value="XLP">XLP (필수소비재)</option>
@@ -99,21 +98,27 @@
             </div>
         </div>
 
-        <!-- 3. 아랫부분: 선택된 ETF 개별 종목 상세 -->
+        <!-- 💡 3. 새로 추가된 차트 영역 -->
+        <div class="section-box" id="chartSection">
+            <h2 style="border-bottom: none; padding-bottom: 0;">🍩 <span id="displayEtfChart" class="pos">XLK</span> 기업 비중</h2>
+            <div id="weight-chart-container" style="width: 100%; height: 450px;"></div>
+        </div>
+
+        <!-- 4. 아랫부분: 선택된 ETF 개별 종목 상세 -->
         <div class="section-box" id="bottomSection">
             <h2 style="border-bottom: none; padding-bottom: 0;">🏢 <span id="displayEtfBottom" class="pos">XLK</span> 개별 기업 상세 수급 내역</h2>
             <table style="margin-bottom: 0;">
                 <thead>
-                    <tr id="tickerTableHeadRow">
-                        <th class="sortable" data-sort="ticker">티커 ⇅</th>
-                        <th class="sortable" data-sort="price">당일 종가 ⇅</th>
-                        <th class="sortable" data-sort="price_change_pct">전일비 증감률 ⇅</th>
-                        <th class="sortable" data-sort="shares_current">보유 주식 수 ⇅</th>
-                        <th class="sortable" data-sort="shares_change">주식 수 변동 ⇅</th>
-                        <th class="sortable" data-sort="holdings_value">보유 가치 ⇅</th>
-                        <th class="sortable" data-sort="dollar_flow">자금 유출입액 ($) ⇅</th>
-                        <th class="sortable" data-sort="flow_ratio_pct">유입 비율 ⇅</th>
-                        <th class="sortable" data-sort="weight_current">보유 비중 ⇅</th>
+                    <tr>
+                        <th class="sortable" onclick="sortTable('ticker')">티커</th>
+                        <th class="sortable" onclick="sortTable('price')">당일 종가</th>
+                        <th class="sortable" onclick="sortTable('price_change_pct')">전일비 증감률</th>
+                        <th class="sortable" onclick="sortTable('shares_current')">보유 주식 수</th>
+                        <th class="sortable" onclick="sortTable('shares_change')">주식 수 변화</th>
+                        <th class="sortable" onclick="sortTable('holdings_value')">보유 가치</th>
+                        <th class="sortable" onclick="sortTable('dollar_flow')">자금 유출입액 ($)</th>
+                        <th class="sortable" onclick="sortTable('flow_ratio_pct')">유입 비율</th>
+                        <th class="sortable" onclick="sortTable('weight_current')">보유비중</th>
                     </tr>
                 </thead>
                 <tbody id="tickerTableBody">
@@ -125,24 +130,37 @@
 
     <script>
         let globalMetricsData = {};
-        // 10개 섹터 ETF 목록으로 확장
         const ETF_LIST = ["XLK", "XLF", "XLV", "XLE", "XLI", "XLC", "XLU", "XLY", "XLP", "XLB"];
+        
+        let availableDatesList = []; 
+        let currentDetailData = []; 
+        let currentSortCol = null;  
+        let currentSortDir = 0;     
 
-        // 정렬 상태 관련 변수
-        let detailDataList = [];
-        let defaultOrderList = [];
-        let sortKey = null;
-        let sortDirection = 'none'; // 'none' (기본값), 'desc' (내림차순), 'asc' (오름차순)
+        // 💡 ECharts 인스턴스를 담을 변수
+        let weightChart = null;
 
-        // 색상 판별 헬퍼 함수
+        document.addEventListener("DOMContentLoaded", () => {
+            const chartDom = document.getElementById('weight-chart-container');
+            weightChart = echarts.init(chartDom);
+            window.addEventListener('resize', () => { if(weightChart) weightChart.resize(); });
+        });
+
+        function formatNumber(num) { return num.toLocaleString('en-US'); }
+
         function getColorClass(value) {
             const strVal = String(value);
             if (strVal.includes('+') || strVal.includes('유입')) return 'pos';
             if (strVal.includes('-') || strVal.includes('유출')) return 'neg';
             return 'neutral';
         }
+        function getNumberColorClass(num) {
+            if (num > 0) return 'pos';
+            if (num < 0) return 'neg';
+            return 'neutral';
+        }
 
-        // 1. 페이지 로드 시 XL_metrics.json 가져오기
+        // 1. 초기 데이터 로드
         fetch('./XL_metrics.json')
             .then(res => {
                 if (!res.ok) throw new Error("메트릭스 파일 없음");
@@ -152,62 +170,57 @@
                 globalMetricsData = data;
                 document.getElementById('loading').style.display = 'none';
                 
-                // 날짜 목록은 데이터 일관성을 위해 XLK 기준으로 추출합니다
-                updateDateDropdown('XLK'); 
+                if(data["XLK"] && data["XLK"].history) {
+                    availableDatesList = Object.keys(data["XLK"].history).sort().reverse();
+                }
+
+                if (availableDatesList.length > 0) {
+                    const picker = document.getElementById('datePicker');
+                    picker.disabled = false;
+                    picker.max = availableDatesList[0];                  
+                    picker.min = availableDatesList[availableDatesList.length - 1]; 
+                    picker.value = availableDatesList[0];                
+                    
+                    updateDashboard(); 
+                } else {
+                    document.getElementById('displayDateTop').innerText = "데이터 없음";
+                }
             })
             .catch(err => {
                 document.getElementById('loading').innerHTML = '데이터를 불러오지 못했습니다.<br>파이썬 업데이트를 확인해주세요.';
-                console.error(err);
             });
 
-        // 2. 이벤트 리스너 설정
-        document.getElementById('etfSelect').addEventListener('change', () => {
-            updateDashboard(); // ETF만 변경되면 하단 상세 표만 다시 렌더링
-        });
-        document.getElementById('dateSelect').addEventListener('change', () => {
-            updateDashboard(); // 날짜가 변경되면 상단 표, 하단 표 모두 다시 렌더링
-        });
+        document.getElementById('etfSelect').addEventListener('change', () => updateDashboard());
 
-        // 헤더 클릭 정렬 이벤트 리스너
-        document.querySelectorAll('#tickerTableHeadRow th.sortable').forEach(th => {
-            th.addEventListener('click', () => {
-                const key = th.getAttribute('data-sort');
-                handleSort(key);
-            });
-        });
+        function handleDateChange(selectedDate) {
+            if (!selectedDate) return;
 
-        // 3. 날짜 드롭다운 세팅
-        function updateDateDropdown(baseEtf) {
-            const dateSelect = document.getElementById('dateSelect');
-            dateSelect.innerHTML = ""; 
-
-            if (!globalMetricsData[baseEtf] || !globalMetricsData[baseEtf].history) {
-                dateSelect.innerHTML = "<option>데이터 없음</option>";
-                return;
+            if (availableDatesList.includes(selectedDate)) {
+                updateDashboard();
+            } else {
+                const closestPastDate = availableDatesList.find(d => d < selectedDate);
+                if (closestPastDate) {
+                    alert(`선택하신 ${selectedDate}은(는) 데이터가 없습니다 (휴장일/휴일 추정).\n가장 가까운 이전 거래일인 [${closestPastDate}] 데이터를 불러옵니다.`);
+                    document.getElementById('datePicker').value = closestPastDate;
+                    updateDashboard();
+                } else {
+                    alert('해당 날짜 이전의 데이터가 존재하지 않습니다.');
+                    document.getElementById('datePicker').value = availableDatesList[0];
+                    updateDashboard();
+                }
             }
-
-            const dates = Object.keys(globalMetricsData[baseEtf].history).sort().reverse();
-            dates.forEach(date => {
-                const option = document.createElement('option');
-                option.value = date;
-                option.textContent = date;
-                dateSelect.appendChild(option);
-            });
-
-            updateDashboard(); 
         }
 
-        // 4. 화면 업데이트 (상단 전체 비교 표 + 하단 상세 표)
         function updateDashboard() {
-            const date = document.getElementById('dateSelect').value;
+            const date = document.getElementById('datePicker').value;
             const selectedEtf = document.getElementById('etfSelect').value;
 
-            if (date === "데이터 없음") return;
+            if (!date) return;
 
-            // --- [1] 상단 표 (Metrics - 전체 ETF 비교) 업데이트 ---
+            // [1] 상단 표 업데이트
             document.getElementById('displayDateTop').innerText = date;
             const metricsTbody = document.getElementById('metricsTableBody');
-            metricsTbody.innerHTML = ""; // 기존 표 지우기
+            metricsTbody.innerHTML = ""; 
 
             ETF_LIST.forEach(etf => {
                 const tr = document.createElement('tr');
@@ -233,16 +246,17 @@
                 metricsTbody.appendChild(tr);
             });
 
-            // --- [2] 하단 표 (Details - 선택된 ETF 개별 종목) 지연 로딩 ---
+            // [2] 하단 표 & 차트 데이터 패치
+            document.getElementById('displayEtfChart').innerText = selectedEtf;
             document.getElementById('displayEtfBottom').innerText = selectedEtf;
+            
             const detailUrl = `./details/${selectedEtf}/${date}.json`;
             const tickerTbody = document.getElementById('tickerTableBody');
-            
             tickerTbody.innerHTML = "<tr><td colspan='9' style='text-align:center;'>상세 데이터를 불러오는 중...</td></tr>";
 
-            // 조회 조건 변경 시 정렬 상태 초기화
-            sortKey = null;
-            sortDirection = 'none';
+            currentSortCol = null;
+            currentSortDir = 0;
+            resetSortIcons();
 
             fetch(detailUrl)
                 .then(res => {
@@ -250,154 +264,152 @@
                     return res.json();
                 })
                 .then(detailData => {
-                    const tickers = detailData.ticker_details;
-                    detailDataList = [];
-
-                    // 데이터 파싱 및 가공 (정렬을 위해 정밀 숫자 타입 확보)
-                    for (const [ticker, info] of Object.entries(tickers)) {
-                        const price = info.price || 0;
-                        const shares_current = info.shares_current || 0;
-
-                        // 보유 가치 수식 계산 (주식수 * 종가)
-                        const holdings_value = shares_current * price;
-
-                        // 유입 비율 수치 추출
-                        let flow_ratio_pct = 0;
-                        if (info.display && info.display.flow_ratio_pct) {
-                            flow_ratio_pct = parseFloat(info.display.flow_ratio_pct.replace(/[^0-9.-]/g, '')) || 0;
-                        }
-
-                        detailDataList.push({
-                            ticker: ticker,
-                            price: price,
-                            price_change_pct: info.price_change_pct || 0,
-                            shares_current: shares_current,
-                            shares_change: info.shares_change || 0,
-                            holdings_value: holdings_value,
-                            dollar_flow: info.dollar_flow || 0,
-                            flow_ratio_pct: flow_ratio_pct,
-                            weight_current: info.weight_current || 0,
-                            display: info.display
-                        });
-                    }
-
-                    // 기본 순서 백업 생성
-                    defaultOrderList = [...detailDataList];
-
+                    // 데이터 가공
+                    currentDetailData = Object.entries(detailData.ticker_details).map(([ticker, info], index) => {
+                        return { ticker, info, originalIndex: index };
+                    });
+                    
+                    // 💡 도넛 차트 그리기 호출
+                    renderWeightDoughnut(selectedEtf, detailData.ticker_details);
+                    
                     // 테이블 렌더링
-                    applySortAndRender();
+                    renderDetailTable(currentDetailData);
                 })
                 .catch(err => {
                     tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${selectedEtf}의 상세 데이터를 불러오지 못했습니다.</td></tr>`;
-                    console.error(err);
+                    if(weightChart) weightChart.clear(); // 에러 시 차트 초기화
                 });
         }
 
-        // 5. 정렬 핸들러 및 렌더링 로직
-        function handleSort(key) {
-            if (sortKey === key) {
-                if (sortDirection === 'none') {
-                    sortDirection = 'desc';
-                } else if (sortDirection === 'desc') {
-                    sortDirection = 'asc';
-                } else {
-                    sortDirection = 'none';
-                    sortKey = null;
-                }
-            } else {
-                sortKey = key;
-                sortDirection = 'desc'; // 새로운 열 선택 시 내림차순 정렬 우선 수행
-            }
-            applySortAndRender();
-        }
+        // 💡 도넛 차트 렌더링 함수
+        function renderWeightDoughnut(etfName, tickersObj) {
+            if (!weightChart) return;
 
-        function applySortAndRender() {
-            let listToSort = [...detailDataList];
+            let mainData = [];
+            let othersWeight = 0;
 
-            if (sortKey && sortDirection !== 'none') {
-                listToSort.sort((a, b) => {
-                    let valA = a[sortKey];
-                    let valB = b[sortKey];
+            // 비중 기준으로 내림차순 정렬
+            const sortedData = Object.entries(tickersObj)
+                .map(([ticker, info]) => ({ ticker, weight: info.weight_current }))
+                .sort((a, b) => b.weight - a.weight);
 
-                    if (sortKey === 'ticker') {
-                        return sortDirection === 'asc' 
-                            ? valA.localeCompare(valB) 
-                            : valB.localeCompare(valA);
+            sortedData.forEach(item => {
+                const w = item.weight;
+                if (w > 0.5) {
+                    let dataItem = { name: item.ticker, value: Number(w.toFixed(2)) };
+                    if (w < 2) {
+                        dataItem.label = { show: false };      
+                        dataItem.labelLine = { show: false };  
                     }
-                    return sortDirection === 'asc' ? valA - valB : valB - valA;
-                });
-            } else {
-                listToSort = [...defaultOrderList]; // 기본 정렬 복원
+                    mainData.push(dataItem);
+                } else {
+                    othersWeight += w;
+                }
+            });
+
+            // 0.5% 이하 기타 항목 묶기
+            if (othersWeight > 0) {
+                let othersItem = { 
+                    name: '기타 (0.5% 이하)', 
+                    value: Number(othersWeight.toFixed(2)),
+                    itemStyle: { color: '#444444' }
+                };
+                if (othersWeight < 2) {
+                    othersItem.label = { show: false };
+                    othersItem.labelLine = { show: false };
+                }
+                mainData.push(othersItem);
             }
 
-            renderTickerTable(listToSort);
-            updateHeaderArrows();
-        }
-
-        function renderTickerTable(list) {
-            const tickerTbody = document.getElementById('tickerTableBody');
-            tickerTbody.innerHTML = "";
-
-            list.forEach(item => {
-                const tr = document.createElement('tr');
-                
-                const pctClass = getColorClass(item.display.price_change_pct);
-                const flowClass = getColorClass(item.display.dollar_flow);
-
-                // 보유 비중 가공
-                const weightVal = item.weight_current !== undefined ? item.weight_current.toFixed(2) + '%' : '0.00%';
-
-                // 주식 수 변동 가공
-                let sharesChangeText = '변동 없음';
-                let sharesChangeClass = 'neutral';
-                if (item.shares_change > 0) {
-                    sharesChangeText = '+' + item.shares_change.toLocaleString() + '주';
-                    sharesChangeClass = 'pos';
-                } else if (item.shares_change < 0) {
-                    sharesChangeText = item.shares_change.toLocaleString() + '주';
-                    sharesChangeClass = 'neg';
-                }
-
-                tr.innerHTML = `
-                    <td class="bold-white">${item.ticker}</td>
-                    <td>${item.display.price}</td>
-                    <td class="${pctClass}">${item.display.price_change_pct}</td>
-                    <td class="neutral">${item.display.shares_current}</td>
-                    <td class="${sharesChangeClass}">${sharesChangeText}</td>
-                    <td class="neutral">${item.display.holdings_value || 'N/A'}</td>
-                    <td class="${flowClass}">${item.display.dollar_flow}</td>
-                    <td class="${flowClass}">${item.display.flow_ratio_pct}</td>
-                    <td class="neutral">${weightVal}</td>
-                `;
-                tickerTbody.appendChild(tr);
+            weightChart.setOption({
+                graphic: [{
+                    type: 'text',
+                    left: 'center',
+                    top: 'center',
+                    style: {
+                        text: etfName,
+                        fontSize: 60,
+                        fontWeight: 'bold',
+                        fill: '#e0e0e0'
+                    }
+                }],
+                tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
+                series: [{
+                    name: `${etfName} 비중`, type: 'pie', radius: ['50%', '80%'], avoidLabelOverlap: true,
+                    itemStyle: { borderRadius: 6, borderColor: '#1e1e1e', borderWidth: 2 },
+                    label: { show: true, position: 'outside', color: '#e0e0e0', fontSize: 12, formatter: '{b}\n{c}%' },
+                    labelLine: { show: true, length: 15, length2: 10 },
+                    data: mainData
+                }]
             });
         }
 
-        // 헤더 정렬 방향 표시 변경 함수
-        function updateHeaderArrows() {
-            const headers = document.querySelectorAll('#tickerTableHeadRow th.sortable');
-            headers.forEach(th => {
-                const key = th.getAttribute('data-sort');
-                if (!key) return;
+        function renderDetailTable(dataArray) {
+            const tbody = document.getElementById('tickerTableBody');
+            tbody.innerHTML = "";
+
+            dataArray.forEach(row => {
+                const ticker = row.ticker;
+                const info = row.info;
+                const tr = document.createElement('tr');
                 
-                // 기존 정렬 표시 제거 후 재생성
-                let baseText = th.innerText.replace(/ [▲▼⇅]/g, '');
-                
-                if (sortKey === key) {
-                    if (sortDirection === 'asc') {
-                        th.innerText = baseText + ' ▲';
-                        th.style.color = '#00b853';
-                    } else if (sortDirection === 'desc') {
-                        th.innerText = baseText + ' ▼';
-                        th.style.color = '#00b853';
-                    } else {
-                        th.innerText = baseText + ' ⇅';
-                        th.style.color = '#aaaaaa';
-                    }
-                } else {
-                    th.innerText = baseText + ' ⇅';
-                    th.style.color = '#aaaaaa';
-                }
+                const pctClass = getNumberColorClass(info.price_change_pct);
+                const flowClass = getNumberColorClass(info.dollar_flow);
+                const shareChangeClass = getNumberColorClass(info.shares_change);
+
+                const signChange = info.shares_change > 0 ? '+' : '';
+
+                tr.innerHTML = `
+                    <td class="bold-white">${ticker}</td>
+                    <td>${info.display.price}</td>
+                    <td class="${pctClass}">${info.price_change_pct > 0 ? '+' : ''}${info.price_change_pct.toFixed(2)}%</td>
+                    <td class="neutral">${formatNumber(info.shares_current)}주</td>
+                    <td class="${shareChangeClass}">${signChange}${formatNumber(info.shares_change)}주</td>
+                    <td class="bold-white">${info.display.holdings_value}</td>
+                    <td class="${flowClass}">${info.display.dollar_flow}</td>
+                    <td class="${flowClass}">${info.flow_ratio_pct > 0 ? '+' : ''}${info.flow_ratio_pct.toFixed(2)}%</td>
+                    <td class="pos">${info.weight_current.toFixed(2)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function sortTable(colKey) {
+            if (currentDetailData.length === 0) return;
+
+            if (currentSortCol === colKey) {
+                currentSortDir = (currentSortDir + 1) % 3;
+            } else {
+                currentSortCol = colKey;
+                currentSortDir = 1; 
+            }
+
+            resetSortIcons();
+            if (currentSortDir !== 0) {
+                const th = document.querySelector(`th[onclick="sortTable('${colKey}')"]`);
+                th.classList.add(currentSortDir === 1 ? 'sort-desc' : 'sort-asc');
+            }
+
+            let sortedData = [...currentDetailData];
+
+            if (currentSortDir === 0) {
+                sortedData.sort((a, b) => a.originalIndex - b.originalIndex);
+            } else {
+                sortedData.sort((a, b) => {
+                    let valA = colKey === 'ticker' ? a.ticker : a.info[colKey];
+                    let valB = colKey === 'ticker' ? b.ticker : b.info[colKey];
+
+                    if (valA < valB) return currentSortDir === 1 ? 1 : -1;
+                    if (valA > valB) return currentSortDir === 1 ? -1 : 1;
+                    return 0;
+                });
+            }
+            renderDetailTable(sortedData);
+        }
+
+        function resetSortIcons() {
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
             });
         }
     </script>
