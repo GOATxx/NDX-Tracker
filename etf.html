@@ -20,11 +20,43 @@
         h2 { font-size: 20px; margin-top: 0; margin-bottom: 15px; color: #e0e0e0; border-bottom: 1px solid #333; padding-bottom: 15px; }
 
         /* 컨트롤 패널 */
-        .controls { background-color: #1a1a1a; padding: 15px 25px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; display: flex; gap: 30px; align-items: center; justify-content: center; }
+        .controls { background-color: #1a1a1a; padding: 15px 25px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; display: flex; gap: 30px; align-items: center; justify-content: center; flex-wrap: wrap; }
         .controls-group { display: flex; align-items: center; gap: 10px; }
         .controls label { font-weight: bold; color: #aaaaaa; }
-        .controls select { padding: 8px 15px; background-color: #121212; color: #00b853; border: 1px solid #333; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; outline: none; }
-        .controls select:hover { border-color: #00b853; }
+        
+        /* 달력 및 드롭다운 스타일 */
+        .controls select, .controls input[type="date"] { 
+            padding: 8px 15px; 
+            background-color: #121212; 
+            color: #00b853; 
+            border: 1px solid #333; 
+            border-radius: 6px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            outline: none; 
+        }
+        .controls select:hover, .controls input[type="date"]:hover { border-color: #00b853; }
+        
+        /* 달력 아이콘 색상 커스텀 (크롬/엣지 계열 지원) */
+        .controls input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) sepia(100%) saturate(1000%) hue-rotate(90deg);
+            cursor: pointer;
+        }
+
+        /* 경고 알림 영역 */
+        #dateNotice { 
+            display: none; 
+            background-color: #2d1a1a; 
+            border: 1px solid #f03b20; 
+            color: #ff8888; 
+            padding: 10px 15px; 
+            border-radius: 6px; 
+            margin-bottom: 20px; 
+            font-size: 14px; 
+            text-align: center; 
+            font-weight: bold;
+        }
 
         /* 테이블 디자인 */
         table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; }
@@ -76,11 +108,11 @@
             </table>
         </div>
 
-        <!-- 2. 컨트롤 패널 (상단 표 아래로 이동) -->
+        <!-- 2. 컨트롤 패널 -->
         <div class="controls">
             <div class="controls-group">
                 <label>조회 일자:</label>
-                <select id="dateSelect"><option>로딩 중...</option></select>
+                <input type="date" id="dateInput">
             </div>
             <div class="controls-group">
                 <label>👇 상세 조회할 섹터 선택:</label>
@@ -98,6 +130,9 @@
                 </select>
             </div>
         </div>
+
+        <!-- 예외 안내 메시지 박스 -->
+        <div id="dateNotice"></div>
 
         <!-- 3. 아랫부분: 선택된 ETF 개별 종목 상세 -->
         <div class="section-box" id="bottomSection">
@@ -125,14 +160,13 @@
 
     <script>
         let globalMetricsData = {};
-        // 10개 섹터 ETF 목록으로 확장
         const ETF_LIST = ["XLK", "XLF", "XLV", "XLE", "XLI", "XLC", "XLU", "XLY", "XLP", "XLB"];
 
         // 정렬 상태 관련 변수
         let detailDataList = [];
         let defaultOrderList = [];
         let sortKey = null;
-        let sortDirection = 'none'; // 'none' (기본값), 'desc' (내림차순), 'asc' (오름차순)
+        let sortDirection = 'none';
 
         // 색상 판별 헬퍼 함수
         function getColorClass(value) {
@@ -152,8 +186,8 @@
                 globalMetricsData = data;
                 document.getElementById('loading').style.display = 'none';
                 
-                // 날짜 목록은 데이터 일관성을 위해 XLK 기준으로 추출합니다
-                updateDateDropdown('XLK'); 
+                // 날짜 선택 한계 설정 및 초기화
+                initCalendarLimits('XLK'); 
             })
             .catch(err => {
                 document.getElementById('loading').innerHTML = '데이터를 불러오지 못했습니다.<br>파이썬 업데이트를 확인해주세요.';
@@ -162,10 +196,10 @@
 
         // 2. 이벤트 리스너 설정
         document.getElementById('etfSelect').addEventListener('change', () => {
-            updateDashboard(); // ETF만 변경되면 하단 상세 표만 다시 렌더링
+            updateDashboard();
         });
-        document.getElementById('dateSelect').addEventListener('change', () => {
-            updateDashboard(); // 날짜가 변경되면 상단 표, 하단 표 모두 다시 렌더링
+        document.getElementById('dateInput').addEventListener('change', () => {
+            updateDashboard();
         });
 
         // 헤더 클릭 정렬 이벤트 리스너
@@ -176,42 +210,74 @@
             });
         });
 
-        // 3. 날짜 드롭다운 세팅
-        function updateDateDropdown(baseEtf) {
-            const dateSelect = document.getElementById('dateSelect');
-            dateSelect.innerHTML = ""; 
-
+        // 3. 달력의 최소/최대 선택일 한계 주입 및 초기 설정
+        function initCalendarLimits(baseEtf) {
+            const dateInput = document.getElementById('dateInput');
             if (!globalMetricsData[baseEtf] || !globalMetricsData[baseEtf].history) {
-                dateSelect.innerHTML = "<option>데이터 없음</option>";
                 return;
             }
 
-            const dates = Object.keys(globalMetricsData[baseEtf].history).sort().reverse();
-            dates.forEach(date => {
-                const option = document.createElement('option');
-                option.value = date;
-                option.textContent = date;
-                dateSelect.appendChild(option);
-            });
+            const dates = Object.keys(globalMetricsData[baseEtf].history).sort();
+            if (dates.length > 0) {
+                dateInput.min = dates[0];
+                dateInput.max = dates[dates.length - 1];
+                dateInput.value = dates[dates.length - 1]; // 가장 최신 데이터일로 기본 지정
+            }
 
             updateDashboard(); 
         }
 
+        // 데이터가 없는 날짜 입력 시 가장 가까운 이전 유효 데이터를 찾아주는 탐색 로직
+        function getClosestAvailableDate(targetDate) {
+            const availableDates = Object.keys(globalMetricsData['XLK']?.history || {}).sort().reverse();
+            if (availableDates.length === 0) return null;
+            
+            // 정확히 일치하는 날짜가 있다면 즉시 반환
+            if (availableDates.includes(targetDate)) return targetDate;
+            
+            // 유저가 고른 날짜보다 이전인 날짜 중 가장 가까운 날 탐색
+            const previousDate = availableDates.find(d => d < targetDate);
+            if (previousDate) return previousDate;
+            
+            // 이전 데이터마저 없다면 수집된 데이터 중 가장 과거의 첫 날짜 반환
+            return availableDates[availableDates.length - 1];
+        }
+
         // 4. 화면 업데이트 (상단 전체 비교 표 + 하단 상세 표)
         function updateDashboard() {
-            const date = document.getElementById('dateSelect').value;
+            const inputElement = document.getElementById('dateInput');
+            const targetDate = inputElement.value;
             const selectedEtf = document.getElementById('etfSelect').value;
 
-            if (date === "데이터 없음") return;
+            if (!targetDate) return;
+
+            // 데이터 존재 여부 판단 및 대체일 탐색
+            const actualDate = getClosestAvailableDate(targetDate);
+            const noticeBox = document.getElementById('dateNotice');
+
+            if (!actualDate) {
+                noticeBox.style.display = 'block';
+                noticeBox.innerText = `⚠️ 불러올 수 있는 전체 데이터가 존재하지 않습니다.`;
+                return;
+            }
+
+            // 날짜 보정 안내 처리
+            if (targetDate !== actualDate) {
+                noticeBox.style.display = 'block';
+                noticeBox.innerText = `⚠️ ${targetDate} 데이터가 존재하지 않아, 가장 가까운 영업일(${actualDate})의 데이터로 대체 표시합니다.`;
+                inputElement.value = actualDate; // 달력 UI에도 대체 적용된 날짜를 일치시켜 줌
+            } else {
+                noticeBox.style.display = 'none';
+            }
 
             // --- [1] 상단 표 (Metrics - 전체 ETF 비교) 업데이트 ---
-            document.getElementById('displayDateTop').innerText = date;
+            document.getElementById('displayDateTop').innerText = actualDate;
             const metricsTbody = document.getElementById('metricsTableBody');
-            metricsTbody.innerHTML = ""; // 기존 표 지우기
+            metricsTbody.innerHTML = ""; 
 
             ETF_LIST.forEach(etf => {
                 const tr = document.createElement('tr');
-                const etfData = globalMetricsData[etf]?.history[date];
+                const etfData = globalMetricsData[etf]?.history[actualDate];
 
                 if (etfData) {
                     const priceClass = etfData.ETF_Price ? getColorClass(etfData.ETF_Price.display) : 'neutral';
@@ -235,12 +301,11 @@
 
             // --- [2] 하단 표 (Details - 선택된 ETF 개별 종목) 지연 로딩 ---
             document.getElementById('displayEtfBottom').innerText = selectedEtf;
-            const detailUrl = `./details/${selectedEtf}/${date}.json`;
+            const detailUrl = `./details/${selectedEtf}/${actualDate}.json`;
             const tickerTbody = document.getElementById('tickerTableBody');
             
             tickerTbody.innerHTML = "<tr><td colspan='9' style='text-align:center;'>상세 데이터를 불러오는 중...</td></tr>";
 
-            // 조회 조건 변경 시 정렬 상태 초기화
             sortKey = null;
             sortDirection = 'none';
 
@@ -253,15 +318,11 @@
                     const tickers = detailData.ticker_details;
                     detailDataList = [];
 
-                    // 데이터 파싱 및 가공 (정렬을 위해 정밀 숫자 타입 확보)
                     for (const [ticker, info] of Object.entries(tickers)) {
                         const price = info.price || 0;
                         const shares_current = info.shares_current || 0;
-
-                        // 보유 가치 수식 계산 (주식수 * 종가)
                         const holdings_value = shares_current * price;
 
-                        // 유입 비율 수치 추출
                         let flow_ratio_pct = 0;
                         if (info.display && info.display.flow_ratio_pct) {
                             flow_ratio_pct = parseFloat(info.display.flow_ratio_pct.replace(/[^0-9.-]/g, '')) || 0;
@@ -281,14 +342,11 @@
                         });
                     }
 
-                    // 기본 순서 백업 생성
                     defaultOrderList = [...detailDataList];
-
-                    // 테이블 렌더링
                     applySortAndRender();
                 })
                 .catch(err => {
-                    tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${selectedEtf}의 상세 데이터를 불러오지 못했습니다.</td></tr>`;
+                    tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${selectedEtf}의 상세 수급 내역 파일이 서버에 존재하지 않습니다.</td></tr>`;
                     console.error(err);
                 });
         }
@@ -306,7 +364,7 @@
                 }
             } else {
                 sortKey = key;
-                sortDirection = 'desc'; // 새로운 열 선택 시 내림차순 정렬 우선 수행
+                sortDirection = 'desc'; 
             }
             applySortAndRender();
         }
@@ -327,7 +385,7 @@
                     return sortDirection === 'asc' ? valA - valB : valB - valA;
                 });
             } else {
-                listToSort = [...defaultOrderList]; // 기본 정렬 복원
+                listToSort = [...defaultOrderList]; 
             }
 
             renderTickerTable(listToSort);
@@ -344,10 +402,8 @@
                 const pctClass = getColorClass(item.display.price_change_pct);
                 const flowClass = getColorClass(item.display.dollar_flow);
 
-                // 보유 비중 가공
                 const weightVal = item.weight_current !== undefined ? item.weight_current.toFixed(2) + '%' : '0.00%';
 
-                // 주식 수 변동 가공
                 let sharesChangeText = '변동 없음';
                 let sharesChangeClass = 'neutral';
                 if (item.shares_change > 0) {
@@ -373,14 +429,12 @@
             });
         }
 
-        // 헤더 정렬 방향 표시 변경 함수
         function updateHeaderArrows() {
             const headers = document.querySelectorAll('#tickerTableHeadRow th.sortable');
             headers.forEach(th => {
                 const key = th.getAttribute('data-sort');
                 if (!key) return;
                 
-                // 기존 정렬 표시 제거 후 재생성
                 let baseText = th.innerText.replace(/ [▲▼⇅]/g, '');
                 
                 if (sortKey === key) {
