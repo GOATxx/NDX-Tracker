@@ -44,10 +44,12 @@
         h2 { font-size: 20px; margin-bottom: 15px; color: #e0e0e0; }
         table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 50px; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #2d2d2d; }
-        th { background-color: #2a2a2a; color: #aaaaaa; font-weight: bold; cursor: pointer; user-select: none; }
-        th:hover { background-color: #333333; color: white; }
-        th.sort-asc::after { content: ' ▲'; font-size: 10px; }
-        th.sort-desc::after { content: ' ▼'; font-size: 10px; }
+        th { background-color: #2a2a2a; color: #aaaaaa; font-weight: bold; }
+        
+        /* etf.html과 동일한 헤더 호버 및 트랜지션 디자인 적용 */
+        th.sortable { cursor: pointer; user-select: none; transition: background-color 0.2s; }
+        th.sortable:hover { background-color: #3a3a3a; color: #00b853; }
+
         .pos { color: #00b853; font-weight: bold; }
         .neg { color: #f03b20; font-weight: bold; }
         tr:hover { background-color: #252525; }
@@ -77,12 +79,12 @@
         <h2>기업별 상세 데이터 정보</h2>
         <table id="stock-table">
             <thead>
-                <tr>
-                    <th onclick="sortTable('Ticker', 'contribution')">티커</th>
-                    <th onclick="sortTable('Current Price ($)', 'contribution')">주가</th>
-                    <th onclick="sortTable('Change (%)', 'contribution')">변동률</th>
-                    <th onclick="sortTable('Market Cap ($)', 'contribution')">시가총액</th>
-                    <th onclick="sortTable('Point Contribution', 'contribution')">지수 기여도</th>
+                <tr id="contribTableHeadRow">
+                    <th class="sortable" data-sort="Ticker">티커 ⇅</th>
+                    <th class="sortable" data-sort="Current Price ($)">주가 ⇅</th>
+                    <th class="sortable" data-sort="Change (%)">변동률 ⇅</th>
+                    <th class="sortable" data-sort="Market Cap ($)">시가총액 ⇅</th>
+                    <th class="sortable" data-sort="Point Contribution">지수 기여도 ⇅</th>
                 </tr>
             </thead>
             <tbody id="table-body-contribution"></tbody>
@@ -96,12 +98,12 @@
         <h2>QQQ 보유 주식 수 및 비중 상세 표</h2>
         <table id="flow-table">
             <thead>
-                <tr>
-                    <th onclick="sortTable('Ticker', 'flow')">티커</th>
-                    <th onclick="sortTable('Shares Held', 'flow')">보유 주식 수</th>
-                    <th onclick="sortTable('Shares Change', 'flow')">전일 대비 증감량</th>
-                    <th onclick="sortTable('Shares Change (%)', 'flow')">증감률 (%)</th>
-                    <th onclick="sortTable('Weight (%)', 'flow')">비중 (%)</th>
+                <tr id="flowTableHeadRow">
+                    <th class="sortable" data-sort="Ticker">티커 ⇅</th>
+                    <th class="sortable" data-sort="Shares Held">보유 주식 수 ⇅</th>
+                    <th class="sortable" data-sort="Shares Change">전일 대비 증감량 ⇅</th>
+                    <th class="sortable" data-sort="Shares Change (%)">증감률 (%) ⇅</th>
+                    <th class="sortable" data-sort="Weight (%)">비중 (%) ⇅</th>
                 </tr>
             </thead>
             <tbody id="table-body-flow"></tbody>
@@ -119,8 +121,17 @@
         const weightChart = echarts.init(weightChartDom);
 
         let globalStockData = []; 
-        let currentSortColumn = '';
-        let isAscending = true;
+        
+        // 정렬 상태 관련 변수 분리
+        let contribDataList = [];
+        let contribDefaultList = [];
+        let contribSortKey = null;
+        let contribSortDirection = 'none';
+
+        let flowDataList = [];
+        let flowDefaultList = [];
+        let flowSortKey = null;
+        let flowSortDirection = 'none';
         
         // 💡 창고에 있는 날짜들을 기억해 둘 전역 변수
         let availableDatesList = [];
@@ -222,10 +233,23 @@
 
                     globalStockData = dataList.filter(item => item['Point Contribution'] != null);
                     
+                    // 정렬용 데이터 세트 수립 및 초기화
+                    contribDataList = [...globalStockData];
+                    contribDefaultList = [...globalStockData];
+                    contribSortKey = null;
+                    contribSortDirection = 'none';
+
+                    flowDataList = [...globalStockData];
+                    flowDefaultList = [...globalStockData];
+                    flowSortKey = null;
+                    flowSortDirection = 'none';
+
                     renderHeatmap(globalStockData);
                     renderWeightDoughnut(globalStockData); 
-                    renderTableContribution(globalStockData);
-                    renderTableFlow(globalStockData);
+                    
+                    // 정렬 로직을 통한 초기 렌더링 및 화살표 상태 동기화
+                    applyContribSortAndRender();
+                    applyFlowSortAndRender();
                 })
                 .catch(err => {
                     document.getElementById('loading').style.display = 'none';
@@ -315,13 +339,121 @@
             });
         }
 
+        // --- 1. 지수 기여도 정렬 로직 및 테이블 빌더 ---
+        function handleContribSort(key) {
+            if (contribSortKey === key) {
+                if (contribSortDirection === 'none') {
+                    contribSortDirection = 'desc';
+                } else if (contribSortDirection === 'desc') {
+                    contribSortDirection = 'asc';
+                } else {
+                    contribSortDirection = 'none';
+                    contribSortKey = null;
+                }
+            } else {
+                contribSortKey = key;
+                contribSortDirection = 'desc';
+            }
+            applyContribSortAndRender();
+        }
+
+        function applyContribSortAndRender() {
+            let listToSort = [...contribDataList];
+
+            if (contribSortKey && contribSortDirection !== 'none') {
+                listToSort.sort((a, b) => {
+                    let valA = a[contribSortKey] ?? 0;
+                    let valB = b[contribSortKey] ?? 0;
+
+                    if (contribSortKey === 'Ticker') {
+                        return contribSortDirection === 'asc' 
+                            ? valA.localeCompare(valB) 
+                            : valB.localeCompare(valA);
+                    }
+                    return contribSortDirection === 'asc' ? valA - valB : valB - valA;
+                });
+            } else {
+                listToSort = [...contribDefaultList];
+            }
+
+            renderTableContribution(listToSort);
+            updateContribHeaderArrows();
+        }
+
         function renderTableContribution(data) {
             const tbody = document.getElementById('table-body-contribution');
             tbody.innerHTML = ''; 
             data.forEach(item => {
                 const isPos = item['Point Contribution'] >= 0; const changeClass = isPos ? 'pos' : 'neg'; const sign = isPos ? '+' : '';
-                tbody.innerHTML += `<tr><td>${item.Ticker}</td><td>$${item['Current Price ($)'].toLocaleString()}</td><td class="${changeClass}">${sign}${item['Change (%)']}%</td><td>${formatMarketCap(item['Market Cap ($)'])}</td><td class="${changeClass}">${sign}${item['Point Contribution']} pt</td></tr>`;
+                tbody.innerHTML += `<tr><td class="bold-white">${item.Ticker}</td><td>$${item['Current Price ($)'].toLocaleString()}</td><td class="${changeClass}">${sign}${item['Change (%)']}%</td><td>${formatMarketCap(item['Market Cap ($)'])}</td><td class="${changeClass}">${sign}${item['Point Contribution']} pt</td></tr>`;
             });
+        }
+
+        function updateContribHeaderArrows() {
+            const headers = document.querySelectorAll('#contribTableHeadRow th.sortable');
+            headers.forEach(th => {
+                const key = th.getAttribute('data-sort');
+                if (!key) return;
+                
+                let baseText = th.innerText.replace(/ [▲▼⇅]/g, '');
+                
+                if (contribSortKey === key) {
+                    if (contribSortDirection === 'asc') {
+                        th.innerText = baseText + ' ▲';
+                        th.style.color = '#f03b20';
+                    } else if (contribSortDirection === 'desc') {
+                        th.innerText = baseText + ' ▼';
+                        th.style.color = '#00b853';
+                    } else {
+                        th.innerText = baseText + ' ⇅';
+                        th.style.color = '#aaaaaa';
+                    }
+                } else {
+                    th.innerText = baseText + ' ⇅';
+                    th.style.color = '#aaaaaa';
+                }
+            });
+        }
+
+        // --- 2. QQQ 기업 비중 정렬 로직 및 테이블 빌더 ---
+        function handleFlowSort(key) {
+            if (flowSortKey === key) {
+                if (flowSortDirection === 'none') {
+                    flowSortDirection = 'desc';
+                } else if (flowSortDirection === 'desc') {
+                    flowSortDirection = 'asc';
+                } else {
+                    flowSortDirection = 'none';
+                    flowSortKey = null;
+                }
+            } else {
+                flowSortKey = key;
+                flowSortDirection = 'desc';
+            }
+            applyFlowSortAndRender();
+        }
+
+        function applyFlowSortAndRender() {
+            let listToSort = [...flowDataList];
+
+            if (flowSortKey && flowSortDirection !== 'none') {
+                listToSort.sort((a, b) => {
+                    let valA = a[flowSortKey] ?? 0;
+                    let valB = b[flowSortKey] ?? 0;
+
+                    if (flowSortKey === 'Ticker') {
+                        return flowSortDirection === 'asc' 
+                            ? valA.localeCompare(valB) 
+                            : valB.localeCompare(valA);
+                    }
+                    return flowSortDirection === 'asc' ? valA - valB : valB - valA;
+                });
+            } else {
+                listToSort = [...flowDefaultList];
+            }
+
+            renderTableFlow(listToSort);
+            updateFlowHeaderArrows();
         }
 
         function renderTableFlow(data) {
@@ -331,29 +463,50 @@
                 let changeClass = ''; let sign = '';
                 if (item['Shares Change'] > 0) { changeClass = 'pos'; sign = '+'; } else if (item['Shares Change'] < 0) { changeClass = 'neg'; sign = ''; }
                 const weight = item['Weight (%)'] ? item['Weight (%)'].toFixed(2) + '%' : 'N/A';
-                tbody.innerHTML += `<tr><td>${item.Ticker}</td><td>${item['Shares Held'].toLocaleString()} 주</td><td class="${changeClass}">${sign}${item['Shares Change'].toLocaleString()}</td><td class="${changeClass}">${sign}${item['Shares Change (%)']}%</td><td style="font-weight:bold; color:#00b853;">${weight}</td></tr>`;
+                tbody.innerHTML += `<tr><td class="bold-white">${item.Ticker}</td><td>${item['Shares Held'].toLocaleString()} 주</td><td class="${changeClass}">${sign}${item['Shares Change'].toLocaleString()}</td><td class="${changeClass}">${sign}${item['Shares Change (%)']}%</td><td style="font-weight:bold; color:#00b853;">${weight}</td></tr>`;
             });
         }
 
-        function sortTable(columnName, tableType) {
-            if (currentSortColumn === columnName) isAscending = !isAscending; else { currentSortColumn = columnName; isAscending = true; }
-            const headers = document.querySelectorAll(`#tab-${tableType} th`);
+        function updateFlowHeaderArrows() {
+            const headers = document.querySelectorAll('#flowTableHeadRow th.sortable');
             headers.forEach(th => {
-                th.classList.remove('sort-asc', 'sort-desc');
-                if (th.innerText.replace(' ▲','').replace(' ▼','') === getDisplayName(columnName)) th.classList.add(isAscending ? 'sort-asc' : 'sort-desc');
+                const key = th.getAttribute('data-sort');
+                if (!key) return;
+                
+                let baseText = th.innerText.replace(/ [▲▼⇅]/g, '');
+                
+                if (flowSortKey === key) {
+                    if (flowSortDirection === 'asc') {
+                        th.innerText = baseText + ' ▲';
+                        th.style.color = '#f03b20';
+                    } else if (flowSortDirection === 'desc') {
+                        th.innerText = baseText + ' ▼';
+                        th.style.color = '#00b853';
+                    } else {
+                        th.innerText = baseText + ' ⇅';
+                        th.style.color = '#aaaaaa';
+                    }
+                } else {
+                    th.innerText = baseText + ' ⇅';
+                    th.style.color = '#aaaaaa';
+                }
             });
-            const sortedData = [...globalStockData].sort((a, b) => {
-                let valA = a[columnName] || 0; let valB = b[columnName] || 0;
-                if (typeof valA === 'string') return isAscending ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                return isAscending ? valA - valB : valB - valA;
-            });
-            if (tableType === 'contribution') renderTableContribution(sortedData); else if (tableType === 'flow') renderTableFlow(sortedData);
         }
 
-        function getDisplayName(col) {
-            const names = { 'Ticker':'티커', 'Current Price ($)':'주가', 'Change (%)':'변동률', 'Market Cap ($)':'시가총액', 'Point Contribution':'지수 기여도', 'Shares Held':'보유 주식 수', 'Shares Change':'전일 대비 증감량', 'Shares Change (%)':'증감률 (%)', 'Weight (%)':'비중 (%)' };
-            return names[col] || '';
-        }
+        // --- 3. 이벤트 바인딩 및 정적 초기화 ---
+        document.querySelectorAll('#contribTableHeadRow th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.getAttribute('data-sort');
+                handleContribSort(key);
+            });
+        });
+
+        document.querySelectorAll('#flowTableHeadRow th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.getAttribute('data-sort');
+                handleFlowSort(key);
+            });
+        });
 
         window.addEventListener('resize', () => {
             if(myChart) myChart.resize();
