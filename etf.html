@@ -8,7 +8,9 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         body { margin: 0; padding: 20px; background-color: #121212; color: white; font-family: sans-serif; }
-        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* 광고 및 가로폭 확보를 위해 컨테이너 크기를 1400px로 확장 */
+        .container { max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
         #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; color: #aaaaaa; z-index: 1000; }
         
         /* 탭 디자인 */
@@ -17,8 +19,8 @@
         .tab-button:hover { color: white; background-color: #1e1e1e; }
         .tab-button.active { color: #00b853; border-bottom: 3px solid #00b853; }
 
-        /* 섹션 공통 */
-        .section-box { background-color: #1e1e1e; padding: 20px 25px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
+        /* 섹션 공통 - 좁은 화면이나 광고 배치 시 테이블이 깨지지 않도록 가로 스크롤 추가 */
+        .section-box { background-color: #1e1e1e; padding: 20px 25px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; overflow-x: auto; }
         h2 { font-size: 20px; margin-top: 0; margin-bottom: 15px; color: #e0e0e0; border-bottom: 1px solid #333; padding-bottom: 15px; }
 
         /* 컨트롤 패널 */
@@ -69,8 +71,10 @@
         }
 
         /* 테이블 디자인 */
-        table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 30px; }
-        th, td { padding: 12px 15px; text-align: center; border-bottom: 1px solid #2d2d2d; }
+        table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+        
+        /* white-space: nowrap;을 추가하여 데이터의 줄바꿈 강제 방지 */
+        th, td { padding: 12px 15px; text-align: center; border-bottom: 1px solid #2d2d2d; white-space: nowrap; }
         th { background-color: #2a2a2a; color: #aaaaaa; font-weight: bold; }
         td:first-child, th:first-child { text-align: left; } /* 첫 열(종목명/섹터)은 왼쪽 정렬 */
         tr:hover { background-color: #252525; }
