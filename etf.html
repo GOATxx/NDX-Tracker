@@ -159,6 +159,7 @@
                         <th class="sortable" data-sort="ticker">티커 ⇅</th>
                         <th class="sortable" data-sort="price">당일 종가 ⇅</th>
                         <th class="sortable" data-sort="price_change_pct">전일비 증감률 ⇅</th>
+                        <th class="sortable" data-sort="rs_momentum">상대 강도 (5D vs SPY) ⇅</th>
                         <th class="sortable" data-sort="shares_current">보유 주식 수 ⇅</th>
                         <th class="sortable" data-sort="shares_change">주식 수 변동 ⇅</th>
                         <th class="sortable" data-sort="holdings_value">보유 가치 ⇅</th>
@@ -168,7 +169,7 @@
                     </tr>
                 </thead>
                 <tbody id="tickerTableBody">
-                    <tr><td colspan="9">데이터를 불러오는 중입니다...</td></tr>
+                    <tr><td colspan="10">데이터를 불러오는 중입니다...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -325,7 +326,7 @@
             const detailUrl = `./details/${selectedEtf}/${actualDate}.json`;
             const tickerTbody = document.getElementById('tickerTableBody');
             
-            tickerTbody.innerHTML = "<tr><td colspan='9' style='text-align:center;'>상세 데이터를 불러오는 중...</td></tr>";
+            tickerTbody.innerHTML = "<tr><td colspan='10' style='text-align:center;'>상세 데이터를 불러오는 중...</td></tr>";
 
             sortKey = null;
             sortDirection = 'none';
@@ -353,6 +354,7 @@
                             ticker: ticker,
                             price: price,
                             price_change_pct: info.price_change_pct || 0,
+                            rs_momentum: info.rs_momentum || 0, // rs_momentum 필드 추가
                             shares_current: shares_current,
                             shares_change: info.shares_change || 0,
                             holdings_value: holdings_value,
@@ -372,7 +374,7 @@
                     renderEChartsDonut(detailDataList, selectedEtf);
                 })
                 .catch(err => {
-                    tickerTbody.innerHTML = `<tr><td colspan='9' class='neg' style='text-align:center;'>${selectedEtf}의 상세 수급 내역 파일이 서버에 존재하지 않습니다.</td></tr>`;
+                    tickerTbody.innerHTML = `<tr><td colspan='10' class='neg' style='text-align:center;'>${selectedEtf}의 상세 수급 내역 파일이 서버에 존재하지 않습니다.</td></tr>`;
                     document.getElementById('chartSection').style.display = 'none';
                     console.error(err);
                 });
@@ -427,6 +429,7 @@
                 const tr = document.createElement('tr');
                 
                 const pctClass = getColorClass(item.display.price_change_pct);
+                const rsMomentumClass = getColorClass(item.display.rs_momentum); // 상대 강도 색상 클래스 판별
                 const flowClass = getColorClass(item.display.dollar_flow);
 
                 const weightVal = item.weight_current !== undefined ? item.weight_current.toFixed(2) + '%' : '0.00%';
@@ -445,6 +448,7 @@
                     <td class="bold-white">${item.ticker}</td>
                     <td>${item.display.price}</td>
                     <td class="${pctClass}">${item.display.price_change_pct}</td>
+                    <td class="${rsMomentumClass}">${item.display.rs_momentum || '0.00%p'}</td>
                     <td class="neutral">${item.display.shares_current}</td>
                     <td class="${sharesChangeClass}">${sharesChangeText}</td>
                     <td class="neutral">${item.display.holdings_value || 'N/A'}</td>
