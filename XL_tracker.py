@@ -111,7 +111,7 @@ def main():
         etf_history = yf.download(etf, start=start_date_yf, end=end_date_yf, progress=False)
         stocks_data = yf.download(all_tickers, start=start_date_yf, end=end_date_yf, progress=False)['Close']
 
-        # 3. ETF 자체 가격 및 변화량 계산 [새로 추가]
+        # 3. ETF 자체 가격 및 변화량 계산
         etf_price, etf_change_amt, etf_change_pct = 0.0, 0.0, 0.0
         try:
             etf_close_arr = etf_history['Close'].to_numpy().flatten()
@@ -124,6 +124,15 @@ def main():
         except Exception as e:
             print(f"    * ETF 가격 계산 오류: {e}")
 
+        # SPY 5일 수익률 사전 계산 (개별 종목 초과수익률 비교용)
+        spy_return_5d = 0.0
+        try:
+            spy_close_arr = spy_data.to_numpy().flatten()
+            if len(spy_close_arr) >= 6:
+                spy_return_5d = ((float(spy_close_arr[-1]) - float(spy_close_arr[-6])) / float(spy_close_arr[-6])) * 100
+        except Exception as e:
+            print(f"    * SPY 5일 수익률 계산 오류: {e}")
+
         # 4. 전체 지표(Metrics) 계산
         etf_vol_arr = etf_history['Volume'].to_numpy().flatten()
         current_vol = float(etf_vol_arr[-1])
@@ -131,9 +140,7 @@ def main():
         rvol = current_vol / avg_vol_20 if avg_vol_20 > 0 else 0
 
         try:
-            spy_close_arr = spy_data.to_numpy().flatten()
-            excess_return = (((etf_price - float(etf_close_arr[-6])) / float(etf_close_arr[-6])) * 100) - \
-                            (((float(spy_close_arr[-1]) - float(spy_close_arr[-6])) / float(spy_close_arr[-6])) * 100)
+            excess_return = (((etf_price - float(etf_close_arr[-6])) / float(etf_close_arr[-6])) * 100) - spy_return_5d
         except:
             excess_return = 0.0
 
@@ -168,12 +175,22 @@ def main():
             share_diff = c_shares - last_raw_data.get(ticker, {}).get("shares", c_shares) if not is_first_run else 0
 
             price, price_change_pct = 0.0, 0.0
+            stock_excess_return = 0.0  # 개별 종목의 SPY 대비 5일 초과 수익률 변수 초기화
+
             if isinstance(stocks_data, pd.DataFrame) and ticker in stocks_data.columns:
                 valid_series = stocks_data[ticker].dropna()
                 prices_arr = valid_series.to_numpy().flatten()
-                if len(prices_arr) >= 1: price = float(prices_arr[-1])
+                
+                # 1일 주가 변화량 계산
+                if len(prices_arr) >= 1: 
+                    price = float(prices_arr[-1])
                 if len(prices_arr) >= 2 and float(prices_arr[-2]) > 0:
                     price_change_pct = ((price - float(prices_arr[-2])) / float(prices_arr[-2])) * 100
+                
+                # 5일 초과 수익률 계산 (종목의 5일 수익률 - SPY의 5일 수익률)
+                if len(prices_arr) >= 6 and float(prices_arr[-6]) > 0:
+                    stock_return_5d = ((price - float(prices_arr[-6])) / float(prices_arr[-6])) * 100
+                    stock_excess_return = stock_return_5d - spy_return_5d
 
             holdings_value = c_shares * price
             dollar_flow = share_diff * price
@@ -183,6 +200,7 @@ def main():
             ticker_details[ticker] = {
                 "price": round(price, 2),
                 "price_change_pct": round(price_change_pct, 2),
+                "rs_momentum": round(stock_excess_return, 2),  # 종목별 초과 수익률 수치 추가
                 "weight_current": round(c_weight, 4),
                 "shares_current": int(c_shares),
                 "shares_change": int(share_diff),
@@ -190,7 +208,8 @@ def main():
                 "display": {
                     "price": f"${price:.2f}",
                     "price_change_pct": f"{'+' if price_change_pct > 0 else ''}{price_change_pct:.2f}%",
-                    "shares_current": f"{int(c_shares):,}주", # [추가] 콤마 찍힌 주식 수 문자열
+                    "rs_momentum": f"SPY 대비 {'+' if stock_excess_return > 0 else ''}{stock_excess_return:.2f}%p",  # 포맷팅 추가
+                    "shares_current": f"{int(c_shares):,}주",
                     "holdings_value": format_value(holdings_value),
                     "dollar_flow": format_flow(dollar_flow),
                     "flow_ratio_pct": f"{flow_ratio_pct:+.2f}%"
@@ -221,11 +240,11 @@ def main():
                 "change_pct": round(etf_change_pct, 2),
                 "display": f"${etf_price:.2f} ({'+' if etf_change_amt > 0 else ''}{etf_change_amt:.2f} / {'+' if etf_change_pct > 0 else ''}{etf_change_pct:.2f}%)"
             },
-            "Fund_Flow": {"value": round(total_fund_flow_dollar, 2), "display": fund_flow_display},                                             # 각 회사의 주가 변화 * 보유 주식 수 변화의 총 합
-            "Fund_Flow_Intensity_20D": {"value": round(flow_ratio_20d_value, 2), "display": flow_ratio_20d_display},                            # 유입 현금 20일 평균 대비 n배
-            "Relative_Volume": {"value": round(rvol, 2), "display": f"{rvol:.1f}배"},                                                            # 거래량 20일 평균 대비 n배
-            "RS_Momentum": {"value": round(excess_return, 2), "display": f"SPY 대비 {'+' if excess_return > 0 else ''}{excess_return:.2f}%p"},   # S&P500 5일 성과 대비 초과/미만 성과%
-            "Weighted_Breadth": {"value": round(weighted_breadth, 2), "display": f"{weighted_breadth:.1f}%"}                                    # 상승한 종목의 보유 비중치 합 - 하락한 종목의 보유 비중치 합
+            "Fund_Flow": {"value": round(total_fund_flow_dollar, 2), "display": fund_flow_display},
+            "Fund_Flow_Intensity_20D": {"value": round(flow_ratio_20d_value, 2), "display": flow_ratio_20d_display},
+            "Relative_Volume": {"value": round(rvol, 2), "display": f"{rvol:.1f}배"},
+            "RS_Momentum": {"value": round(excess_return, 2), "display": f"SPY 대비 {'+' if excess_return > 0 else ''}{excess_return:.2f}%p"},
+            "Weighted_Breadth": {"value": round(weighted_breadth, 2), "display": f"{weighted_breadth:.1f}%"}
         }
 
         # 8. 데이터 저장 2: details/ETF명/YYYY-MM-DD.json
