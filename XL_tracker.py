@@ -48,7 +48,7 @@ def is_valid_ticker(val):
     return True
 
 def main():
-    print("🚀 ETF 수급 분석 시작 (가격 정보 포함)...\n")
+    print("🚀 ETF 수급 분석 시작 (가격 및 Net Assets 정보 포함)...\n")
     
     if not os.path.exists(DETAILS_DIR):
         os.makedirs(DETAILS_DIR)
@@ -124,6 +124,16 @@ def main():
         except Exception as e:
             print(f"    * ETF 가격 계산 오류: {e}")
 
+        # [추가] YFinance API를 통한 ETF Net Assets (순자산 정보) 조회
+        etf_net_assets = 0
+        try:
+            etf_ticker_obj = yf.Ticker(etf)
+            etf_net_assets = etf_ticker_obj.info.get('totalAssets')
+            if etf_net_assets is None:
+                etf_net_assets = 0
+        except Exception as e:
+            print(f"    * {etf} Net Assets 정보 조회 실패: {e}")
+
         # SPY 5일 수익률 사전 계산 (개별 종목 초과수익률 비교용)
         spy_return_5d = 0.0
         try:
@@ -175,19 +185,17 @@ def main():
             share_diff = c_shares - last_raw_data.get(ticker, {}).get("shares", c_shares) if not is_first_run else 0
 
             price, price_change_pct = 0.0, 0.0
-            stock_excess_return = 0.0  # 개별 종목의 SPY 대비 5일 초과 수익률 변수 초기화
+            stock_excess_return = 0.0
 
             if isinstance(stocks_data, pd.DataFrame) and ticker in stocks_data.columns:
                 valid_series = stocks_data[ticker].dropna()
                 prices_arr = valid_series.to_numpy().flatten()
                 
-                # 1일 주가 변화량 계산
                 if len(prices_arr) >= 1: 
                     price = float(prices_arr[-1])
                 if len(prices_arr) >= 2 and float(prices_arr[-2]) > 0:
                     price_change_pct = ((price - float(prices_arr[-2])) / float(prices_arr[-2])) * 100
                 
-                # 5일 초과 수익률 계산 (종목의 5일 수익률 - SPY의 5일 수익률)
                 if len(prices_arr) >= 6 and float(prices_arr[-6]) > 0:
                     stock_return_5d = ((price - float(prices_arr[-6])) / float(prices_arr[-6])) * 100
                     stock_excess_return = stock_return_5d - spy_return_5d
@@ -200,7 +208,7 @@ def main():
             ticker_details[ticker] = {
                 "price": round(price, 2),
                 "price_change_pct": round(price_change_pct, 2),
-                "rs_momentum": round(stock_excess_return, 2),  # 종목별 초과 수익률 수치 추가
+                "rs_momentum": round(stock_excess_return, 2),
                 "weight_current": round(c_weight, 4),
                 "shares_current": int(c_shares),
                 "shares_change": int(share_diff),
@@ -208,7 +216,7 @@ def main():
                 "display": {
                     "price": f"${price:.2f}",
                     "price_change_pct": f"{'+' if price_change_pct > 0 else ''}{price_change_pct:.2f}%",
-                    "rs_momentum": f"SPY 대비 {'+' if stock_excess_return > 0 else ''}{stock_excess_return:.2f}%p",  # 포맷팅 추가
+                    "rs_momentum": f"SPY 대비 {'+' if stock_excess_return > 0 else ''}{stock_excess_return:.2f}%p",
                     "shares_current": f"{int(c_shares):,}주",
                     "holdings_value": format_value(holdings_value),
                     "dollar_flow": format_flow(dollar_flow),
@@ -223,7 +231,6 @@ def main():
         if etf not in metrics_data: metrics_data[etf] = {"history": {}}
         past_dates = sorted(list(metrics_data[etf]["history"].keys()))
         
-        # 수정: 과거 데이터가 최소 20일 이상 쌓였을 때만 20일 평균 강도를 계산합니다.
         if len(past_dates) >= 20:
             recent_20 = past_dates[-20:]
             past_flows_abs = [abs(metrics_data[etf]["history"][d]["Fund_Flow"]["value"]) for d in recent_20]
@@ -233,12 +240,16 @@ def main():
                 flow_ratio_20d_value = abs(total_fund_flow_dollar) / avg_flow_20d
                 flow_ratio_20d_display = f"{flow_ratio_20d_value:.1f}배"
 
-        # 7. 데이터 저장 1: XL_metrics.json (ETF 가격 정보 포함)
+        # 7. 데이터 저장 1: XL_metrics.json (Net Assets 정보가 change_pct 아래에 추가됨)
         metrics_data[etf]["history"][excel_date_str] = {
             "ETF_Price": {
                 "value": round(etf_price, 2),
                 "change_amt": round(etf_change_amt, 2),
                 "change_pct": round(etf_change_pct, 2),
+                "net_assets": {
+                    "value": int(etf_net_assets),
+                    "display": format_value(etf_net_assets)
+                },
                 "display": f"${etf_price:.2f} ({'+' if etf_change_amt > 0 else ''}{etf_change_amt:.2f} / {'+' if etf_change_pct > 0 else ''}{etf_change_pct:.2f}%)"
             },
             "Fund_Flow": {"value": round(total_fund_flow_dollar, 2), "display": fund_flow_display},
