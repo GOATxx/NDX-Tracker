@@ -223,7 +223,8 @@ def main():
         if etf not in metrics_data: metrics_data[etf] = {"history": {}}
         past_dates = sorted(list(metrics_data[etf]["history"].keys()))
         
-        if len(past_dates) > 0:
+        # 수정: 과거 데이터가 최소 20일 이상 쌓였을 때만 20일 평균 강도를 계산합니다.
+        if len(past_dates) >= 20:
             recent_20 = past_dates[-20:]
             past_flows_abs = [abs(metrics_data[etf]["history"][d]["Fund_Flow"]["value"]) for d in recent_20]
             avg_flow_20d = sum(past_flows_abs) / len(past_flows_abs) if len(past_flows_abs) > 0 else 0
