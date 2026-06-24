@@ -551,6 +551,71 @@
                 });
         }
 
+        // [신규] 이중 Y축의 0선(Zero Line)을 정렬하기 위한 최적 범위 계산 함수
+        function calculateAlignedYAxisBounds(leftData, rightData) {
+            let minL = Math.min(...leftData);
+            let maxL = Math.max(...leftData);
+            let minR = Math.min(...rightData);
+            let maxR = Math.max(...rightData);
+
+            // 0을 범위에 항상 포함시켜 0선이 존재하도록 유도
+            if (minL > 0) minL = 0;
+            if (maxL < 0) maxL = 0;
+            if (minR > 0) minR = 0;
+            if (maxR < 0) maxR = 0;
+
+            // 모든 값이 0일 경우 기본값 범위 설정
+            if (minL === 0 && maxL === 0) { minL = -1; maxL = 1; }
+            if (minR === 0 && maxR === 0) { minR = -1; maxR = 1; }
+
+            // 분모가 0이 되는 상황을 방지하며 비율 연산
+            let ratioL = minL === 0 ? null : (maxL / Math.abs(minL));
+            let ratioR = minR === 0 ? null : (maxR / Math.abs(minR));
+
+            let maxL_adj = maxL;
+            let minL_adj = minL;
+            let maxR_adj = maxR;
+            let minR_adj = minR;
+
+            if (ratioL === null && ratioR === null) {
+                // 둘 다 음수 범위가 없는 경우 (0이 하단에 정렬됨)
+                minL_adj = 0;
+                minR_adj = 0;
+            } else if (ratioL === null) {
+                // 좌측은 음수가 없고 우측은 음수가 있는 경우
+                if (ratioR > 0) {
+                    minL_adj = -(maxL / ratioR);
+                } else {
+                    minL_adj = -maxL;
+                    maxR_adj = -minR;
+                }
+            } else if (ratioR === null) {
+                // 우측은 음수가 없고 좌측은 음수가 있는 경우
+                if (ratioL > 0) {
+                    minR_adj = -(maxR / ratioL);
+                } else {
+                    minR_adj = -maxR;
+                    maxL_adj = -minL;
+                }
+            } else {
+                // 둘 다 음수/양수가 존재하는 경우 (비율 조정으로 0 정렬)
+                if (ratioL < ratioR) {
+                    maxL_adj = Math.abs(minL) * ratioR;
+                } else if (ratioL > ratioR) {
+                    maxR_adj = Math.abs(minR) * ratioL;
+                }
+            }
+
+            // 차트 테두리에 데이터가 겹치지 않게 여백 추가 (동일 배율을 곱하므로 비율 유지)
+            const scaleFactor = 1.15;
+            return {
+                minL: minL_adj * scaleFactor,
+                maxL: maxL_adj * scaleFactor,
+                minR: minR_adj * scaleFactor,
+                maxR: maxR_adj * scaleFactor
+            };
+        }
+
         // 신규: ECharts 자금유출입 트렌드 시각화 연산 함수
         function updateTrendChart() {
             const selectedEtf = document.getElementById('etfSelect').value;
@@ -678,6 +743,9 @@
                 return val.toLocaleString();
             }
 
+            // [신규] 양측 Y축의 0선을 동일 선상에 놓기 위한 최소/최대값 연산
+            const bounds = calculateAlignedYAxisBounds(cumulativeFlows, dailyFlows);
+
             const option = {
                 tooltip: {
                     trigger: 'axis',
@@ -722,6 +790,8 @@
                     {
                         type: 'value',
                         name: lineName,
+                        min: bounds.minL,
+                        max: bounds.maxL,
                         nameTextStyle: { color: '#aaa', fontSize: 11, align: 'left' },
                         axisLine: { show: false },
                         axisLabel: { 
@@ -733,6 +803,8 @@
                     {
                         type: 'value',
                         name: barName,
+                        min: bounds.minR,
+                        max: bounds.maxR,
                         nameTextStyle: { color: '#aaa', fontSize: 11, align: 'right' },
                         axisLine: { show: false },
                         axisLabel: { 
