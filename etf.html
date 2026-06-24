@@ -670,34 +670,6 @@
             const lineName = t.cum_flow;
             const barName = isWeekly ? t.weekly_flow : t.daily_flow;
 
-            // --- [신규 추가] 이중 Y축의 0선 정렬을 위한 동적 min/max 보정 연산 ---
-            const max1 = Math.max(...cumulativeFlows, 0);
-            const min1 = Math.min(...cumulativeFlows, 0);
-            const max2 = Math.max(...dailyFlows, 0);
-            const min2 = Math.min(...dailyFlows, 0);
-
-            const absMin1 = Math.abs(min1);
-            const absMin2 = Math.abs(min2);
-
-            // 음수/양수 비율 산출 (분모가 0이 되는 예외 케이스 처리)
-            const scale1 = max1 === 0 ? 0 : absMin1 / max1;
-            const scale2 = max2 === 0 ? 0 : absMin2 / max2;
-
-            let y1Min, y1Max, y2Min, y2Max;
-
-            // 비율이 더 큰 축을 기준으로 삼고, 반대쪽 축의 음수 영역 범위를 늘려 수평 정렬
-            if (scale1 > scale2) {
-                y1Min = min1 === 0 ? -1 : min1 * 1.1;
-                y1Max = max1 === 0 ? 1 : max1 * 1.1;
-                y2Max = max2 === 0 ? 1 : max2 * 1.1;
-                y2Min = - (y2Max * (Math.abs(y1Min) / y1Max));
-            } else {
-                y2Min = min2 === 0 ? -1 : min2 * 1.1;
-                y2Max = max2 === 0 ? 1 : max2 * 1.1;
-                y1Max = max1 === 0 ? 1 : max1 * 1.1;
-                y1Min = - (y1Max * (Math.abs(y2Min) / y2Max));
-            }
-
             function formatValueAxis(val) {
                 const absVal = Math.abs(val);
                 if (absVal >= 1e9) return `${(val / 1e9).toFixed(1)}B`;
@@ -750,8 +722,6 @@
                     {
                         type: 'value',
                         name: lineName,
-                        min: y1Min, // 동적 계산 결과 적용
-                        max: y1Max, // 동적 계산 결과 적용
                         nameTextStyle: { color: '#aaa', fontSize: 11, align: 'left' },
                         axisLine: { show: false },
                         axisLabel: { 
@@ -763,8 +733,6 @@
                     {
                         type: 'value',
                         name: barName,
-                        min: y2Min, // 동적 계산 결과 적용
-                        max: y2Max, // 동적 계산 결과 적용
                         nameTextStyle: { color: '#aaa', fontSize: 11, align: 'right' },
                         axisLine: { show: false },
                         axisLabel: { 
