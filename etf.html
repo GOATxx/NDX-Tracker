@@ -41,6 +41,13 @@
         #dateNotice { display: none; background-color: #2d1a1a; border: 1px solid #f03b20; color: #ff8888; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; text-align: center; font-weight: bold; }
         #weight-chart-container { width: 100%; height: 450px; background-color: #1a1a1a; border-radius: 8px; }
 
+        /* 기간 선택 제어 버튼 그룹 스타일 */
+        .trend-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 15px; }
+        .period-btn { background-color: #222; border: 1px solid #444; color: #aaa; padding: 6px 15px; font-size: 14px; cursor: pointer; border-radius: 4px; font-weight: bold; transition: all 0.2s; }
+        .period-btn:hover { background-color: #333; color: white; border-color: #00b853; }
+        .period-btn.active { background-color: #00b853; color: white; border-color: #00b853; }
+        #flow-trend-chart-container { width: 100%; height: 480px; background-color: #1a1a1a; border-radius: 8px; }
+
         /* 테이블 디자인 */
         table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
         th, td { padding: 12px 15px; text-align: center; border-bottom: 1px solid #2d2d2d; white-space: nowrap; }
@@ -122,6 +129,22 @@
 
         <div id="dateNotice"></div>
 
+        <!-- [신규] 2.5 중상단 부분: 자금 유출입 추세선 및 기간별 유입/유출량 그래프 상자 -->
+        <div class="section-box" id="trendSection" style="background-color: #1a1a1a;">
+            <h2>📈 <span id="displayEtfTrend" class="pos">XLK</span> <span id="titleTrend">자금 유출입 추세 및 흐름</span></h2>
+            <div class="trend-controls">
+                <label id="lblPeriod" style="font-weight: bold; color: #aaaaaa; font-size:14px;">기간 선택:</label>
+                <button class="period-btn active" data-period="20D">20D</button>
+                <button class="period-btn" data-period="50D">50D</button>
+                <button class="period-btn" data-period="100D">100D</button>
+                <button class="period-btn" data-period="200D">200D</button>
+                <button class="period-btn" data-period="1Y">1Y</button>
+                <button class="period-btn" data-period="3Y">3Y</button>
+                <button class="period-btn" data-period="5Y">5Y</button>
+            </div>
+            <div id="flow-trend-chart-container"></div>
+        </div>
+
         <!-- 3. 중간 부분: ECharts 비중 분배 도넛 차트 상자 -->
         <div class="section-box" id="chartSection" style="display: none; background-color: #1a1a1a;">
             <h2>🍕 <span id="displayEtfChart" class="pos">XLK</span> <span id="titleChart">보유 비중 포트폴리오</span></h2>
@@ -179,6 +202,13 @@
                 chart_title: "보유 비중 포트폴리오",
                 bottom_title: "개별 기업 상세 수급 내역",
                 
+                // 신규 자금 동향 번역 추가
+                title_trend: "자금 유출입 추세 및 흐름",
+                lbl_period: "조회 기간:",
+                cum_flow: "누적 자금 유출입량",
+                daily_flow: "당일 자금 유출입량",
+                weekly_flow: "주간 자금 유출입량",
+
                 // 데이터 상태 번역
                 accumulating: "데이터 누적 중",
                 no_data: "데이터 부족",
@@ -223,6 +253,13 @@
                 chart_title: "Portfolio Holdings Weight",
                 bottom_title: "Individual Stock Detail",
                 
+                // 신규 자금 동향 번역 추가
+                title_trend: "Fund Flow Trend & Flows",
+                lbl_period: "Period:",
+                cum_flow: "Cumulative Flow",
+                daily_flow: "Daily Flow",
+                weekly_flow: "Weekly Flow",
+
                 accumulating: "Accumulating",
                 no_data: "No Data",
                 no_change: "No Change",
@@ -253,6 +290,8 @@
         let sortKey = null;
         let sortDirection = 'none';
         let weightChartInstance = null;
+        let trendChartInstance = null;
+        let selectedPeriod = '20D'; // 기본 조회 기간
 
         // 색상 판별 헬퍼
         function getColorClassByValue(val) {
@@ -312,6 +351,10 @@
             document.getElementById('thBreadth').innerText = t.col_breadth;
             document.getElementById('thRs').innerText = t.col_rs;
 
+            // 신규 트렌드 세션 헤더
+            document.getElementById('titleTrend').innerText = t.title_trend;
+            document.getElementById('lblPeriod').innerText = t.lbl_period;
+
             // 정렬 헤더들 텍스트 업데이트
             updateHeaderArrows();
         }
@@ -336,6 +379,16 @@
         // 2. 이벤트 리스너 설정
         document.getElementById('etfSelect').addEventListener('change', updateDashboard);
         document.getElementById('dateInput').addEventListener('change', updateDashboard);
+
+        // 신규: 기간 제어 버튼 클릭 이벤트 등록
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedPeriod = btn.getAttribute('data-period');
+                updateTrendChart();
+            });
+        });
 
         document.querySelectorAll('#tickerTableHeadRow th.sortable').forEach(th => {
             th.addEventListener('click', () => {
@@ -392,6 +445,9 @@
                 noticeBox.style.display = 'none';
             }
 
+            // 신규: 자금 유출입 추세선 및 막대 그래프 업데이트
+            updateTrendChart();
+
             // --- [1] 상단 표 (Metrics) 업데이트 (다국어화 포맷) ---
             document.getElementById('displayDateTop').innerText = actualDate;
             const metricsTbody = document.getElementById('metricsTableBody');
@@ -417,7 +473,7 @@
                     const rvolDisplay = `${etfData.Relative_Volume.value.toFixed(1)}${t.times}`;
                     
                     const rsVal = etfData.RS_Momentum.value;
-                    // 수정: 'vs SPY' 또는 'SPY 대비' 텍스트를 제거하고 순수 수치만 노출
+                    // 'vs SPY' 또는 'SPY 대비' 텍스트를 제거하고 순수 수치만 노출
                     const rsDisplay = `${rsVal > 0 ? '+' : ''}${rsVal.toFixed(2)}%p`;
 
                     const priceClass = etfData.ETF_Price ? getColorClassByValue(etfData.ETF_Price.change_amt) : 'neutral';
@@ -495,6 +551,234 @@
                 });
         }
 
+        // 신규: ECharts 자금유출입 트렌드 시각화 연산 함수
+        function updateTrendChart() {
+            const selectedEtf = document.getElementById('etfSelect').value;
+            const targetDateStr = document.getElementById('dateInput').value;
+            const t = i18n[currentLang];
+            
+            document.getElementById('displayEtfTrend').innerText = selectedEtf;
+
+            if (!targetDateStr || !globalMetricsData[selectedEtf]) return;
+
+            const actualDate = getClosestAvailableDate(targetDateStr);
+            if (!actualDate) return;
+
+            const history = globalMetricsData[selectedEtf].history;
+            const sortedDates = Object.keys(history).sort();
+            const targetIdx = sortedDates.indexOf(actualDate);
+            if (targetIdx === -1) return;
+
+            // 조회 기간 범위를 Date 객체로 수립
+            const targetDateObj = new Date(actualDate);
+            let startDateObj = new Date(actualDate);
+
+            if (selectedPeriod === '20D') startDateObj.setDate(targetDateObj.getDate() - 20);
+            else if (selectedPeriod === '50D') startDateObj.setDate(targetDateObj.getDate() - 50);
+            else if (selectedPeriod === '100D') startDateObj.setDate(targetDateObj.getDate() - 100);
+            else if (selectedPeriod === '200D') startDateObj.setDate(targetDateObj.getDate() - 200);
+            else if (selectedPeriod === '1Y') startDateObj.setFullYear(targetDateObj.getFullYear() - 1);
+            else if (selectedPeriod === '3Y') startDateObj.setFullYear(targetDateObj.getFullYear() - 3);
+            else if (selectedPeriod === '5Y') startDateObj.setFullYear(targetDateObj.getFullYear() - 5);
+
+            // 해당 범위에 매칭되는 JSON 날짜 필터링
+            let filteredDates = sortedDates.filter(dStr => {
+                const dObj = new Date(dStr);
+                return dObj >= startDateObj && dObj <= targetDateObj;
+            });
+
+            // 데이터 수가 너무 작을 경우(예: 초기 데이터), 인덱스 기준 후방 탐색을 통해 강제 보정
+            if (filteredDates.length <= 1) {
+                let fallbackCount = 20;
+                if (selectedPeriod === '50D') fallbackCount = 50;
+                else if (selectedPeriod === '100D') fallbackCount = 100;
+                else if (selectedPeriod === '200D') fallbackCount = 200;
+                else if (selectedPeriod === '1Y') fallbackCount = 250;
+                else if (selectedPeriod === '3Y') fallbackCount = 750;
+                else if (selectedPeriod === '5Y') fallbackCount = 1250;
+
+                const startIdx = Math.max(0, targetIdx - fallbackCount + 1);
+                filteredDates = sortedDates.slice(startIdx, targetIdx + 1);
+            }
+
+            // 1Y, 3Y, 5Y 혹은 데이터 포인트가 150개 이상이면 일주일 단위 합산 처리
+            const shouldGroupWeekly = ['1Y', '3Y', '5Y'].includes(selectedPeriod) || filteredDates.length > 150;
+            let timelineData = [];
+
+            if (shouldGroupWeekly) {
+                const weeklyGroups = {};
+                filteredDates.forEach(dStr => {
+                    const dObj = new Date(dStr);
+                    // 일요일을 기준으로 주차 그룹화화
+                    const day = dObj.getDay();
+                    const diff = dObj.getDate() - day;
+                    const sundayObj = new Date(dObj.setDate(diff));
+                    const weekKey = sundayObj.toISOString().split('T')[0];
+
+                    if (!weeklyGroups[weekKey]) {
+                        weeklyGroups[weekKey] = {
+                            totalFlow: 0,
+                            lastDateStr: dStr
+                        };
+                    }
+                    const flowVal = history[dStr]?.Fund_Flow?.value || 0;
+                    weeklyGroups[weekKey].totalFlow += flowVal;
+                    if (new Date(dStr) > new Date(weeklyGroups[weekKey].lastDateStr)) {
+                        weeklyGroups[weekKey].lastDateStr = dStr;
+                    }
+                });
+
+                Object.keys(weeklyGroups).sort().forEach(weekKey => {
+                    timelineData.push({
+                        dateLabel: weeklyGroups[weekKey].lastDateStr,
+                        flowValue: weeklyGroups[weekKey].totalFlow
+                    });
+                });
+            } else {
+                filteredDates.forEach(dStr => {
+                    const flowVal = history[dStr]?.Fund_Flow?.value || 0;
+                    timelineData.push({
+                        dateLabel: dStr,
+                        flowValue: flowVal
+                    });
+                });
+            }
+
+            // 선택된 기간의 시작 시점을 기준점 0으로 잡고 누적(Cumulative) 값 계산
+            let cumulative = 0;
+            const categories = [];
+            const dailyFlows = [];
+            const cumulativeFlows = [];
+
+            timelineData.forEach(item => {
+                cumulative += item.flowValue;
+                categories.push(item.dateLabel);
+                dailyFlows.push(item.flowValue);
+                cumulativeFlows.push(cumulative);
+            });
+
+            renderTrendChart(categories, dailyFlows, cumulativeFlows, shouldGroupWeekly);
+        }
+
+        function renderTrendChart(categories, dailyFlows, cumulativeFlows, isWeekly) {
+            const chartDom = document.getElementById('flow-trend-chart-container');
+            if (!trendChartInstance) {
+                trendChartInstance = echarts.init(chartDom);
+            }
+
+            const t = i18n[currentLang];
+            const lineName = t.cum_flow;
+            const barName = isWeekly ? t.weekly_flow : t.daily_flow;
+
+            function formatValueAxis(val) {
+                const absVal = Math.abs(val);
+                if (absVal >= 1e9) return `${(val / 1e9).toFixed(1)}B`;
+                if (absVal >= 1e6) return `${(val / 1e6).toFixed(1)}M`;
+                if (absVal === 0) return '0';
+                return val.toLocaleString();
+            }
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    backgroundColor: 'rgba(30, 30, 30, 0.9)',
+                    borderColor: '#444',
+                    textStyle: { color: '#fff', fontSize: 12 },
+                    formatter: function (params) {
+                        let result = `<div style="font-weight:bold; margin-bottom:5px; color:#aaa;">${params[0].name}</div>`;
+                        params.forEach(p => {
+                            let valStr = formatDollarJS(p.value);
+                            let dotColor = p.color;
+                            if (p.seriesType === 'bar') {
+                                dotColor = p.value >= 0 ? '#00b853' : '#f03b20';
+                            }
+                            result += `<div style="display:flex; justify-content:space-between; gap:15px; align-items:center;">
+                                <span><span style="display:inline-block; margin-right:5px; border-radius:50%; width:9px; height:9px; background-color:${dotColor};"></span>${p.seriesName}</span>
+                                <span style="font-weight:bold; ${p.seriesType === 'bar' ? 'color:' + (p.value >= 0 ? '#00b853' : '#f03b20') : ''}">${valStr}</span>
+                            </div>`;
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    data: [lineName, barName],
+                    textStyle: { color: '#ccc' },
+                    bottom: 5
+                },
+                grid: {
+                    top: 50,
+                    bottom: 60,
+                    left: '6%',
+                    right: '6%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: categories,
+                    axisLine: { lineStyle: { color: '#444' } },
+                    axisLabel: { color: '#aaa', fontSize: 11 }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: lineName,
+                        nameTextStyle: { color: '#aaa', fontSize: 11, align: 'left' },
+                        axisLine: { show: false },
+                        axisLabel: { 
+                            color: '#aaa',
+                            formatter: function(value) { return formatValueAxis(value); }
+                        },
+                        splitLine: { lineStyle: { color: '#2d2d2d' } }
+                    },
+                    {
+                        type: 'value',
+                        name: barName,
+                        nameTextStyle: { color: '#aaa', fontSize: 11, align: 'right' },
+                        axisLine: { show: false },
+                        axisLabel: { 
+                            color: '#aaa',
+                            formatter: function(value) { return formatValueAxis(value); }
+                        },
+                        splitLine: { show: false }
+                    }
+                ],
+                series: [
+                    {
+                        name: lineName,
+                        type: 'line',
+                        yAxisIndex: 0,
+                        data: cumulativeFlows,
+                        smooth: true,
+                        symbol: 'circle',
+                        symbolSize: 6,
+                        showSymbol: categories.length < 50,
+                        lineStyle: { width: 3, color: '#3498db' },
+                        itemStyle: { color: '#3498db' },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(52, 152, 219, 0.25)' },
+                                { offset: 1, color: 'rgba(52, 152, 219, 0)' }
+                            ])
+                        }
+                    },
+                    {
+                        name: barName,
+                        type: 'bar',
+                        yAxisIndex: 1,
+                        data: dailyFlows,
+                        itemStyle: {
+                            color: function(params) {
+                                return params.value >= 0 ? '#00b853' : '#f03b20';
+                            },
+                            borderRadius: [3, 3, 0, 0]
+                        }
+                    }
+                ]
+            };
+
+            trendChartInstance.setOption(option, true);
+        }
+
         // 5. 정렬 및 랜더링
         function handleSort(key) {
             if (sortKey === key) {
@@ -553,7 +837,7 @@
                 }
 
                 const priceChangeText = `${item.price_change_pct > 0 ? '+' : ''}${item.price_change_pct.toFixed(2)}%`;
-                // 수정: 'vs SPY' 또는 'SPY 대비' 텍스트를 제거하고 순수 수치만 노출
+                // 'vs SPY' 또는 'SPY 대비' 텍스트를 제거하고 순수 수치만 노출
                 const rsMomentumText = `${item.rs_momentum > 0 ? '+' : ''}${item.rs_momentum.toFixed(2)}%p`;
                 const flowRatioText = `${item.flow_ratio_pct > 0 ? '+' : ''}${item.flow_ratio_pct.toFixed(2)}%`;
 
@@ -654,6 +938,7 @@
 
         window.addEventListener('resize', () => {
             if (weightChartInstance) weightChartInstance.resize();
+            if (trendChartInstance) trendChartInstance.resize();
         });
 
         function updateHeaderArrows() {
