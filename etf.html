@@ -183,7 +183,6 @@
                 times: "배",
                 inflow: "유입",
                 outflow: "유출",
-                vs_spy: "SPY 대비",
 
                 // 경고창 번역
                 alert_no_data: "⚠️ 불러올 수 있는 전체 데이터가 존재하지 않습니다.",
@@ -227,7 +226,6 @@
                 times: "x",
                 inflow: "Inflow",
                 outflow: "Outflow",
-                vs_spy: "vs SPY",
 
                 alert_no_data: "⚠️ No historical data available.",
                 alert_fallback: (t, a) => `⚠️ No data for ${t}. Displaying closest business day (${a}) instead.`,
@@ -416,7 +414,8 @@
                     const rvolDisplay = `${etfData.Relative_Volume.value.toFixed(1)}${t.times}`;
                     
                     const rsVal = etfData.RS_Momentum.value;
-                    const rsDisplay = `${t.vs_spy} ${rsVal > 0 ? '+' : ''}${rsVal.toFixed(2)}%p`;
+                    // 수정: 'vs SPY' 또는 'SPY 대비' 텍스트를 제거하고 순수 수치만 노출
+                    const rsDisplay = `${rsVal > 0 ? '+' : ''}${rsVal.toFixed(2)}%p`;
 
                     const priceClass = etfData.ETF_Price ? getColorClassByValue(etfData.ETF_Price.change_amt) : 'neutral';
                     const flowClass = getColorClassByValue(rawFlow);
@@ -551,7 +550,8 @@
                 }
 
                 const priceChangeText = `${item.price_change_pct > 0 ? '+' : ''}${item.price_change_pct.toFixed(2)}%`;
-                const rsMomentumText = `${t.vs_spy} ${item.rs_momentum > 0 ? '+' : ''}${item.rs_momentum.toFixed(2)}%p`;
+                // 수정: 'vs SPY' 또는 'SPY 대비' 텍스트를 제거하고 순수 수치만 노출
+                const rsMomentumText = `${item.rs_momentum > 0 ? '+' : ''}${item.rs_momentum.toFixed(2)}%p`;
                 const flowRatioText = `${item.flow_ratio_pct > 0 ? '+' : ''}${item.flow_ratio_pct.toFixed(2)}%`;
 
                 tr.innerHTML = `
