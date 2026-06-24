@@ -203,7 +203,7 @@ def main():
             holdings_value = c_shares * price
             dollar_flow = share_diff * price
             total_fund_flow_dollar += dollar_flow
-            flow_ratio_pct = (dollar_flow / (abs(dollar_flow) + holdings_value) * 100) if holdings_value > 0 else 0.0
+            flow_ratio_pct = (share_diff / (abs(share_diff) + c_shares) * 100) if holdings_value > 0 else 0.0
 
             ticker_details[ticker] = {
                 "price": round(price, 2),
