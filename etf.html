@@ -72,10 +72,13 @@
             <button class="tab-button" onclick="location.href='index.html'" id="tabBack">◀ 나스닥 메인으로 돌아가기</button>
             <button class="tab-button active" id="tabTitle">🔥 ETF 섹터 정밀 수급</button>
         </div>
-
-        <!-- 1. 윗부분: 모든 ETF 지표 요약 표 -->
+<!-- 1. 윗부분: 모든 ETF 지표 요약 표 -->
         <div class="section-box" id="topSection">
-            <h2><span id="titleTop">📊 전체 섹터 ETF 수급 지표 비교</span> (<span id="displayDateTop" class="pos">-</span> <span id="asOfText">기준</span>)</h2>
+            <h2>
+                <span id="titleTop">📊 전체 섹터 ETF 수급 지표 비교</span> 
+                <span style="font-size: 12px; color: #64748b; font-weight: normal; margin-left: 8px; margin-right: 4px;">(YYYY-MM-DD)</span> 
+                (<span id="displayDateTop" class="pos">-</span> <span id="asOfText">기준</span>)
+            </h2>
             <table>
                 <thead>
                     <tr id="topTableHead">
