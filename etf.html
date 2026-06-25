@@ -62,6 +62,10 @@
         .neutral { color: #aaaaaa; font-weight: bold; }
         .bold-white { color: white; font-weight: bold; }
 
+        /* Z-Score 색상 고도화 */
+        .pos-soft { color: #8ce6b0; font-weight: bold; } /* 은은한 초록색 */
+        .neg-soft { color: #ff9e9e; font-weight: bold; } /* 은은한 빨간색 */
+
         /* Z-Score 게이지 바 스타일 */
         .z-score-container {
             display: flex;
@@ -509,7 +513,7 @@
                         }
                     }
 
-                    // --- 20D Z-Score 산출 로직 ---
+                    // --- 20D Z-Score 산출 및 색상 세분화 로직 ---
                     let zScoreDisplay = `<span class="neutral">${t.no_data}</span>`;
                     const historyKeys = Object.keys(globalMetricsData[etf]?.history || {}).sort();
                     const curIdx = historyKeys.indexOf(actualDate);
@@ -529,9 +533,17 @@
                                 let pct = ((zScore + 3) / 6) * 100;
                                 pct = Math.max(0, Math.min(100, pct));
 
+                                // Z-Score 값의 크기에 따른 세분화된 색상 클래스 배정
                                 let zClass = 'neutral';
-                                if (zScore >= 1.5) zClass = 'pos';
-                                else if (zScore <= -1.5) zClass = 'neg';
+                                if (zScore >= 2.0) {
+                                    zClass = 'pos';       // 2.0 이상: 강한 유입 (선명한 초록색)
+                                } else if (zScore >= 1.0) {
+                                    zClass = 'pos-soft';  // 1.0 이상 2.0 미만: 은은한 유입 (연초록색)
+                                } else if (zScore <= -2.0) {
+                                    zClass = 'neg';       // -2.0 이하: 강한 유출 (선명한 빨간색)
+                                } else if (zScore <= -1.0) {
+                                    zClass = 'neg-soft';  // -2.0 초과 -1.0 이하: 은은한 유출 (연빨간색)
+                                }
 
                                 zScoreDisplay = `
                                     <div class="z-score-container">
