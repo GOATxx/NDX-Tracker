@@ -386,7 +386,6 @@
             else if (absVal >= 1e6) valStr = `$${(absVal / 1e6).toFixed(2)}M`;
             else valStr = `$${Math.round(absVal).toLocaleString()}`;
             return prefix + valStr;
-            return prefix + valStr;
         }
 
         // 언어 변경 함수
@@ -1045,10 +1044,10 @@
             const means = [];
             const zScores = [];
             
-            // [수정] +-3.0, +-2.5, +-2.0 채널 리스트 추가 정의
+            // [수정] +-3.0을 제거하고 +-2.5를 최외곽 라인으로 재정립한 10단계 대칭형 채널 리스트
             const bands = {
-                p3_0: [], p2_5: [], p2_0: [], p1_5: [], p1_0: [], p0_5: [],
-                m0_5: [], m1_0: [], m1_5: [], m2_0: [], m2_5: [], m3_0: []
+                p2_5: [], p2_0: [], p1_5: [], p1_0: [], p0_5: [],
+                m0_5: [], m1_0: [], m1_5: [], m2_0: [], m2_5: []
             };
 
             // 각 시점별로 직전 20일 기준의 롤링 통계 계산
@@ -1061,7 +1060,7 @@
                 const mean = flows.reduce((sum, val) => sum + val, 0) / flows.length;
                 
                 let stdDev = 0;
-                // [수정 보완] 불편 표준편차 적용
+                // [보완] N-1 자유도 불편 표준편차 적용
                 if (flows.length > 1) {
                     const variance = flows.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (flows.length - 1);
                     stdDev = Math.sqrt(variance);
@@ -1075,8 +1074,7 @@
                 means.push(mean);
                 zScores.push(zScore);
 
-                // [수정] 상하 표준편차 고도화 채널 추가 산출
-                bands.p3_0.push(mean + 3.0 * stdDev);
+                // [수정] 최외곽 임계선을 +-2.5로 조정한 표준편차 신규 채널 바인딩
                 bands.p2_5.push(mean + 2.5 * stdDev);
                 bands.p2_0.push(mean + 2.0 * stdDev);
                 bands.p1_5.push(mean + 1.5 * stdDev);
@@ -1087,7 +1085,6 @@
                 bands.m1_5.push(mean - 1.5 * stdDev);
                 bands.m2_0.push(mean - 2.0 * stdDev);
                 bands.m2_5.push(mean - 2.5 * stdDev);
-                bands.m3_0.push(mean - 3.0 * stdDev);
             }
 
             renderZScoreChannelChart(visibleDates, actualFlows, means, zScores, bands);
@@ -1126,15 +1123,15 @@
                         let flowColor = flow >= 0 ? '#00b853' : '#f03b20';
                         let meanColor = mean >= 0 ? '#00b853' : '#f03b20';
                         
-                        // Z-Score 툴팁 색상 가독성 세분화
+                        // [수정] Z-Score 수치 기준 변색 범위 재매핑 (최대 임계 2.5 가이드 적용)
                         let zColor = '#888888';
                         const absZ = Math.abs(z);
-                        if (absZ >= 3.0) {
-                            zColor = z > 0 ? '#055a29' : '#a61b0a'; // 3.0 초과 완전 진함
-                        } else if (absZ >= 2.0) {
-                            zColor = z > 0 ? '#00b853' : '#f03b20'; // 2.0 초과 진함
+                        if (absZ >= 2.5) {
+                            zColor = z > 0 ? '#055a29' : '#a61b0a'; // +-2.5 이상: 완전 진함
+                        } else if (absZ >= 1.5) {
+                            zColor = z > 0 ? '#00b853' : '#f03b20'; // +-1.5 이상: 진함
                         } else if (absZ >= 1.0) {
-                            zColor = z > 0 ? '#8ce6b0' : '#ff9e9e'; // 1.0 초과 연함
+                            zColor = z > 0 ? '#8ce6b0' : '#ff9e9e'; // +-1.0 이상: 연함
                         }
                         
                         let zSign = z > 0 ? '+' : '';
@@ -1157,8 +1154,8 @@
                     }
                 },
                 legend: {
-                    // 범례의 가독성을 위해 대표 수치선만 표기
-                    data: [t.channel_actual, t.channel_mean, '+3.0 Std Dev', '-3.0 Std Dev'],
+                    // 범례 가독성을 위해 대표 외곽 수치선만 표기
+                    data: [t.channel_actual, t.channel_mean, '+2.5 Std Dev', '-2.5 Std Dev'],
                     textStyle: { color: '#ccc' },
                     bottom: 5
                 },
@@ -1184,7 +1181,7 @@
                     splitLine: { lineStyle: { color: '#2d2d2d' } }
                 },
                 series: [
-                    // 1) 실제 일일 수급액 점 (Dot 디자인 고도화 요구사항 반영)
+                    // 1) 실제 일일 수급액 점 (Dot 그라데이션 요구사항 4단계 완전 반영)
                     {
                         name: t.channel_actual,
                         type: 'line',
@@ -1199,12 +1196,12 @@
                                 const absZ = Math.abs(z);
                                 if (absZ < 1.0) {
                                     return '#888888'; // +-1 미만: 회색
-                                } else if (absZ < 2.0) {
-                                    return z > 0 ? '#8ce6b0' : '#ff9e9e'; // +-1초과 +-2 미만: 연한 초록색/빨간색
-                                } else if (absZ < 3.0) {
-                                    return z > 0 ? '#00b853' : '#f03b20'; // +-2초과 +-3 미만: 좀 더 진한 초록색/빨간색
+                                } else if (absZ < 1.5) {
+                                    return z > 0 ? '#8ce6b0' : '#ff9e9e'; // +-1이상 +-1.5 미만: 연한 초록색/빨간색
+                                } else if (absZ < 2.5) {
+                                    return z > 0 ? '#00b853' : '#f03b20'; // +-1.5이상 +-2.5 미만: 조금 더 진한 초록색/빨간색
                                 } else {
-                                    return z > 0 ? '#055a29' : '#a61b0a'; // +-3 초과: 완전 진한 초록색/빨간색
+                                    return z > 0 ? '#055a29' : '#a61b0a'; // +-2.5 이상: 완전 진한 초록색/빨간색
                                 }
                             }
                         }
@@ -1221,20 +1218,12 @@
                     
                     // 3) 상단 채널 밴드 그라데이션 라인들 (양수: #00b853 기준 불투명도 조절로 단계식 그라데이션)
                     {
-                        name: '+3.0 Std Dev',
-                        type: 'line',
-                        data: bands.p3_0,
-                        smooth: true,
-                        symbol: 'none',
-                        lineStyle: { width: 1.5, color: 'rgba(0, 184, 83, 0.95)', type: 'dashed' }
-                    },
-                    {
                         name: '+2.5 Std Dev',
                         type: 'line',
                         data: bands.p2_5,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.75)', type: 'dashed' }
+                        lineStyle: { width: 1.5, color: 'rgba(0, 184, 83, 0.90)', type: 'dashed' }
                     },
                     {
                         name: '+2.0 Std Dev',
@@ -1242,7 +1231,7 @@
                         data: bands.p2_0,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.55)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.65)', type: 'dashed' }
                     },
                     {
                         name: '+1.5 Std Dev',
@@ -1250,7 +1239,7 @@
                         data: bands.p1_5,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.40)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.45)', type: 'dashed' }
                     },
                     {
                         name: '+1.0 Std Dev',
@@ -1258,7 +1247,7 @@
                         data: bands.p1_0,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.25)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.28)', type: 'dashed' }
                     },
                     {
                         name: '+0.5 Std Dev',
@@ -1284,7 +1273,7 @@
                         data: bands.m1_0,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.25)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.28)', type: 'dashed' }
                     },
                     {
                         name: '-1.5 Std Dev',
@@ -1292,7 +1281,7 @@
                         data: bands.m1_5,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.40)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.45)', type: 'dashed' }
                     },
                     {
                         name: '-2.0 Std Dev',
@@ -1300,7 +1289,7 @@
                         data: bands.m2_0,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.55)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.65)', type: 'dashed' }
                     },
                     {
                         name: '-2.5 Std Dev',
@@ -1308,15 +1297,7 @@
                         data: bands.m2_5,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.75)', type: 'dashed' }
-                    },
-                    {
-                        name: '-3.0 Std Dev',
-                        type: 'line',
-                        data: bands.m3_0,
-                        smooth: true,
-                        symbol: 'none',
-                        lineStyle: { width: 1.5, color: 'rgba(240, 59, 32, 0.95)', type: 'dashed' }
+                        lineStyle: { width: 1.5, color: 'rgba(240, 59, 32, 0.90)', type: 'dashed' }
                     }
                 ]
             };
