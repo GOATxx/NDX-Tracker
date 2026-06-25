@@ -175,7 +175,7 @@
             <div id="flow-trend-chart-container"></div>
         </div>
 
-        <!-- [신규 추가] 2.6 중단 부분: 자금 유출입 변동성 채널 (Z-Score) 차트 상자 -->
+        <!-- 2.6 중단 부분: 자금 유출입 변동성 채널 (Z-Score) 차트 상자 -->
         <div class="section-box" id="zscoreChannelSection" style="background-color: #1a1a1a;">
             <h2>📊 <span id="displayEtfChannelTitle" class="pos">XLK</span> <span id="titleChannelChart">자금 유출입 변동성 채널 (Z-Score)</span></h2>
             <div class="trend-controls">
@@ -386,6 +386,7 @@
             else if (absVal >= 1e6) valStr = `$${(absVal / 1e6).toFixed(2)}M`;
             else valStr = `$${Math.round(absVal).toLocaleString()}`;
             return prefix + valStr;
+            return prefix + valStr;
         }
 
         // 언어 변경 함수
@@ -568,7 +569,9 @@
                         if (windowDates.length >= 2) {
                             const flows = windowDates.map(d => globalMetricsData[etf].history[d].Fund_Flow.value);
                             const mean = flows.reduce((sum, val) => sum + val, 0) / flows.length;
-                            const variance = flows.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / flows.length;
+                            
+                            // [수정 보완] 통계적 신뢰성을 위한 자유도 N-1 적용
+                            const variance = flows.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (flows.length - 1);
                             const stdDev = Math.sqrt(variance);
 
                             if (stdDev > 0) {
@@ -1010,7 +1013,7 @@
             trendChartInstance.setOption(option, true);
         }
 
-        // [신규 추가] Z-score 변동성 채널 계산 및 차트 업데이트 함수
+        // Z-score 변동성 채널 계산 및 차트 업데이트 함수
         function updateZScoreChannelChart() {
             const selectedEtf = document.getElementById('etfSelect').value;
             const targetDateStr = document.getElementById('dateInput').value;
@@ -1041,9 +1044,11 @@
             const actualFlows = [];
             const means = [];
             const zScores = [];
+            
+            // [수정] +-3.0, +-2.5, +-2.0 채널 리스트 추가 정의
             const bands = {
-                p1_5: [], p1_0: [], p0_5: [],
-                m0_5: [], m1_0: [], m1_5: []
+                p3_0: [], p2_5: [], p2_0: [], p1_5: [], p1_0: [], p0_5: [],
+                m0_5: [], m1_0: [], m1_5: [], m2_0: [], m2_5: [], m3_0: []
             };
 
             // 각 시점별로 직전 20일 기준의 롤링 통계 계산
@@ -1054,8 +1059,14 @@
                 
                 const flows = windowDates.map(d => history[d]?.Fund_Flow?.value || 0);
                 const mean = flows.reduce((sum, val) => sum + val, 0) / flows.length;
-                const variance = flows.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / flows.length;
-                const stdDev = Math.sqrt(variance);
+                
+                let stdDev = 0;
+                // [수정 보완] 불편 표준편차 적용
+                if (flows.length > 1) {
+                    const variance = flows.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (flows.length - 1);
+                    stdDev = Math.sqrt(variance);
+                }
+                
                 const currentFlow = history[dateStr]?.Fund_Flow?.value || 0;
                 const zScore = stdDev === 0 ? 0 : (currentFlow - mean) / stdDev;
 
@@ -1064,19 +1075,25 @@
                 means.push(mean);
                 zScores.push(zScore);
 
-                // 상하 표준편차 밴드 산출
+                // [수정] 상하 표준편차 고도화 채널 추가 산출
+                bands.p3_0.push(mean + 3.0 * stdDev);
+                bands.p2_5.push(mean + 2.5 * stdDev);
+                bands.p2_0.push(mean + 2.0 * stdDev);
                 bands.p1_5.push(mean + 1.5 * stdDev);
                 bands.p1_0.push(mean + 1.0 * stdDev);
                 bands.p0_5.push(mean + 0.5 * stdDev);
                 bands.m0_5.push(mean - 0.5 * stdDev);
                 bands.m1_0.push(mean - 1.0 * stdDev);
                 bands.m1_5.push(mean - 1.5 * stdDev);
+                bands.m2_0.push(mean - 2.0 * stdDev);
+                bands.m2_5.push(mean - 2.5 * stdDev);
+                bands.m3_0.push(mean - 3.0 * stdDev);
             }
 
             renderZScoreChannelChart(visibleDates, actualFlows, means, zScores, bands);
         }
 
-        // [신규 추가] Z-score 변동성 채널 실제 드로잉 함수 (ECharts)
+        // [신규 수정] Z-score 변동성 채널 실제 드로잉 함수 (ECharts)
         function renderZScoreChannelChart(dates, actualFlows, means, zScores, bands) {
             const chartDom = document.getElementById('zscore-channel-chart-container');
             if (!zscoreChannelChartInstance) {
@@ -1108,7 +1125,18 @@
 
                         let flowColor = flow >= 0 ? '#00b853' : '#f03b20';
                         let meanColor = mean >= 0 ? '#00b853' : '#f03b20';
-                        let zColor = z >= 1.5 ? '#00b853' : (z <= -1.5 ? '#f03b20' : '#aaa');
+                        
+                        // Z-Score 툴팁 색상 가독성 세분화
+                        let zColor = '#888888';
+                        const absZ = Math.abs(z);
+                        if (absZ >= 3.0) {
+                            zColor = z > 0 ? '#055a29' : '#a61b0a'; // 3.0 초과 완전 진함
+                        } else if (absZ >= 2.0) {
+                            zColor = z > 0 ? '#00b853' : '#f03b20'; // 2.0 초과 진함
+                        } else if (absZ >= 1.0) {
+                            zColor = z > 0 ? '#8ce6b0' : '#ff9e9e'; // 1.0 초과 연함
+                        }
+                        
                         let zSign = z > 0 ? '+' : '';
 
                         return `
@@ -1129,7 +1157,8 @@
                     }
                 },
                 legend: {
-                    data: [t.channel_actual, t.channel_mean, '+1.5 Std Dev', '-1.5 Std Dev'],
+                    // 범례의 가독성을 위해 대표 수치선만 표기
+                    data: [t.channel_actual, t.channel_mean, '+3.0 Std Dev', '-3.0 Std Dev'],
                     textStyle: { color: '#ccc' },
                     bottom: 5
                 },
@@ -1155,7 +1184,7 @@
                     splitLine: { lineStyle: { color: '#2d2d2d' } }
                 },
                 series: [
-                    // 1) 실제 일일 수급 액 (위치 표시용 Point 형태의 Line)
+                    // 1) 실제 일일 수급액 점 (Dot 디자인 고도화 요구사항 반영)
                     {
                         name: t.channel_actual,
                         type: 'line',
@@ -1163,13 +1192,20 @@
                         showSymbol: true,
                         symbol: 'circle',
                         symbolSize: 8,
-                        lineStyle: { color: 'rgba(255, 255, 255, 0.15)', width: 1 }, // 위치간 가느다란 가이드 연동선 추가
+                        lineStyle: { color: 'rgba(255, 255, 255, 0.15)', width: 1 }, 
                         itemStyle: {
                             color: function(params) {
                                 const z = zScores[params.dataIndex];
-                                if (z >= 1.5) return '#00b853'; // 임계값 돌파 유입 (초록)
-                                if (z <= -1.5) return '#f03b20'; // 임계값 돌파 유출 (빨강)
-                                return '#888888'; // 평이한 수준 (회색)
+                                const absZ = Math.abs(z);
+                                if (absZ < 1.0) {
+                                    return '#888888'; // +-1 미만: 회색
+                                } else if (absZ < 2.0) {
+                                    return z > 0 ? '#8ce6b0' : '#ff9e9e'; // +-1초과 +-2 미만: 연한 초록색/빨간색
+                                } else if (absZ < 3.0) {
+                                    return z > 0 ? '#00b853' : '#f03b20'; // +-2초과 +-3 미만: 좀 더 진한 초록색/빨간색
+                                } else {
+                                    return z > 0 ? '#055a29' : '#a61b0a'; // +-3 초과: 완전 진한 초록색/빨간색
+                                }
                             }
                         }
                     },
@@ -1182,14 +1218,39 @@
                         symbol: 'none',
                         lineStyle: { width: 2, color: '#ffffff' }
                     },
-                    // 3) 상단 채널 밴드들 (+0.5, +1.0, +1.5)
+                    
+                    // 3) 상단 채널 밴드 그라데이션 라인들 (양수: #00b853 기준 불투명도 조절로 단계식 그라데이션)
+                    {
+                        name: '+3.0 Std Dev',
+                        type: 'line',
+                        data: bands.p3_0,
+                        smooth: true,
+                        symbol: 'none',
+                        lineStyle: { width: 1.5, color: 'rgba(0, 184, 83, 0.95)', type: 'dashed' }
+                    },
+                    {
+                        name: '+2.5 Std Dev',
+                        type: 'line',
+                        data: bands.p2_5,
+                        smooth: true,
+                        symbol: 'none',
+                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.75)', type: 'dashed' }
+                    },
+                    {
+                        name: '+2.0 Std Dev',
+                        type: 'line',
+                        data: bands.p2_0,
+                        smooth: true,
+                        symbol: 'none',
+                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.55)', type: 'dashed' }
+                    },
                     {
                         name: '+1.5 Std Dev',
                         type: 'line',
                         data: bands.p1_5,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1.5, color: 'rgba(239, 83, 80, 0.7)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.40)', type: 'dashed' }
                     },
                     {
                         name: '+1.0 Std Dev',
@@ -1197,7 +1258,7 @@
                         data: bands.p1_0,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(239, 83, 80, 0.45)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.25)', type: 'dashed' }
                     },
                     {
                         name: '+0.5 Std Dev',
@@ -1205,16 +1266,17 @@
                         data: bands.p0_5,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(239, 83, 80, 0.25)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(0, 184, 83, 0.12)', type: 'dashed' }
                     },
-                    // 4) 하단 채널 밴드들 (-0.5, -1.0, -1.5)
+                    
+                    // 4) 하단 채널 밴드 그라데이션 라인들 (음수: #f03b20 기준 불투명도 조절로 단계식 그라데이션)
                     {
                         name: '-0.5 Std Dev',
                         type: 'line',
                         data: bands.m0_5,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(38, 166, 154, 0.25)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.12)', type: 'dashed' }
                     },
                     {
                         name: '-1.0 Std Dev',
@@ -1222,7 +1284,7 @@
                         data: bands.m1_0,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1, color: 'rgba(38, 166, 154, 0.45)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.25)', type: 'dashed' }
                     },
                     {
                         name: '-1.5 Std Dev',
@@ -1230,7 +1292,31 @@
                         data: bands.m1_5,
                         smooth: true,
                         symbol: 'none',
-                        lineStyle: { width: 1.5, color: 'rgba(38, 166, 154, 0.7)', type: 'dashed' }
+                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.40)', type: 'dashed' }
+                    },
+                    {
+                        name: '-2.0 Std Dev',
+                        type: 'line',
+                        data: bands.m2_0,
+                        smooth: true,
+                        symbol: 'none',
+                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.55)', type: 'dashed' }
+                    },
+                    {
+                        name: '-2.5 Std Dev',
+                        type: 'line',
+                        data: bands.m2_5,
+                        smooth: true,
+                        symbol: 'none',
+                        lineStyle: { width: 1, color: 'rgba(240, 59, 32, 0.75)', type: 'dashed' }
+                    },
+                    {
+                        name: '-3.0 Std Dev',
+                        type: 'line',
+                        data: bands.m3_0,
+                        smooth: true,
+                        symbol: 'none',
+                        lineStyle: { width: 1.5, color: 'rgba(240, 59, 32, 0.95)', type: 'dashed' }
                     }
                 ]
             };
@@ -1396,7 +1482,7 @@
         window.addEventListener('resize', () => {
             if (weightChartInstance) weightChartInstance.resize();
             if (trendChartInstance) trendChartInstance.resize();
-            if (zscoreChannelChartInstance) zscoreChannelChartInstance.resize(); // [신규] 리사이즈 대응 추가
+            if (zscoreChannelChartInstance) zscoreChannelChartInstance.resize(); 
         });
 
         function updateHeaderArrows() {
