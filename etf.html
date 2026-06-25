@@ -131,7 +131,7 @@
 
         <!-- [신규] 2.5 중상단 부분: 자금 유출입 추세선 및 기간별 유입/유출량 그래프 상자 -->
         <div class="section-box" id="trendSection" style="background-color: #1a1a1a;">
-            <h2>📈 <span id="displayEtfTrend" class="pos">XLK</span> <span id="titleTrend">자금 유출입 추세 및 흐름</span></h2>
+            <h2>📈 <span id="displayEtfTrend" class="pos">XLK</span> <span id="titleTrend">자금 유출입 추세 및 흐름</span> <span id="trendStats" style="font-size: 13px; color: #aaaaaa; font-weight: normal; margin-left: 15px;"></span></h2>
             <div class="trend-controls">
                 <label id="lblPeriod" style="font-weight: bold; color: #aaaaaa; font-size:14px;">기간 선택:</label>
                 <button class="period-btn active" data-period="20D">20D</button>
@@ -313,6 +313,18 @@
             if (absVal >= 1e9) return `$${(absVal / 1e9).toFixed(2)}B`;
             if (absVal >= 1e6) return `$${(absVal / 1e6).toFixed(2)}M`;
             return `$${Math.round(absVal).toLocaleString()}`;
+        }
+
+        // 부호가 포함된 실시간 달러 변환 포맷터
+        function formatDollarWithSignJS(value) {
+            if (value === 0) return "$0";
+            const prefix = value > 0 ? "+" : "-";
+            const absVal = Math.abs(value);
+            let valStr = "";
+            if (absVal >= 1e9) valStr = `$${(absVal / 1e9).toFixed(2)}B`;
+            else if (absVal >= 1e6) valStr = `$${(absVal / 1e6).toFixed(2)}M`;
+            else valStr = `$${Math.round(absVal).toLocaleString()}`;
+            return prefix + valStr;
         }
 
         // 언어 변경 함수
@@ -543,10 +555,21 @@
                     defaultOrderList = [...detailDataList];
                     applySortAndRender();
                     renderEChartsDonut(detailDataList, selectedEtf);
+
+                    // 누적 연산을 통한 순자산(AUM) 계산 및 실시간 상태 지표 업데이트 호출
+                    window.loadedDetailEtf = selectedEtf;
+                    window.loadedDetailDate = actualDate;
+                    window.currentTotalNetAssets = detailDataList.reduce((sum, item) => sum + item.holdings_value, 0);
+                    updateTrendStatsUI();
                 })
                 .catch(err => {
                     tickerTbody.innerHTML = t.alert_no_detail(selectedEtf);
                     document.getElementById('chartSection').style.display = 'none';
+                    // 에러 시 요약값 초기화
+                    window.loadedDetailEtf = null;
+                    window.loadedDetailDate = null;
+                    window.currentTotalNetAssets = 0;
+                    updateTrendStatsUI();
                     console.error(err);
                 });
         }
@@ -722,7 +745,41 @@
                 cumulativeFlows.push(cumulative);
             });
 
+            // 전역 변수 동기화 및 실시간 상단 상태 표시 영역 갱신
+            window.currentTrendEtf = selectedEtf;
+            window.currentTrendDate = actualDate;
+            window.currentPeriodCumulativeFlow = cumulativeFlows[cumulativeFlows.length - 1] || 0;
+            updateTrendStatsUI();
+
             renderTrendChart(categories, dailyFlows, cumulativeFlows, shouldGroupWeekly);
+        }
+
+        // 그래프 타이틀 우측 요약 지표 업데이트 함수
+        function updateTrendStatsUI() {
+            const statsEl = document.getElementById('trendStats');
+            if (!statsEl) return;
+
+            // 현재 조회 중인 ETF 및 일자와 디테일 정보가 정확히 일치할 때만 동적으로 지표 갱신
+            if (window.currentTotalNetAssets && window.currentTrendEtf === window.loadedDetailEtf && window.currentTrendDate === window.loadedDetailDate) {
+                const netAssets = window.currentTotalNetAssets;
+                const cumFlow = window.currentPeriodCumulativeFlow || 0;
+                
+                const ratio = (cumFlow / netAssets) * 100;
+                const ratioSign = ratio > 0 ? "+" : "";
+                const ratioClass = ratio > 0 ? "pos" : (ratio < 0 ? "neg" : "neutral");
+
+                const netAssetsStr = formatDollarJS(netAssets);
+                const cumFlowStr = formatDollarWithSignJS(cumFlow);
+                const ratioStr = `${ratioSign}${ratio.toFixed(2)}%`;
+
+                if (currentLang === 'ko') {
+                    statsEl.innerHTML = `(순자산: <span class="bold-white">${netAssetsStr}</span> | 선택 기간 누적 유출입: <span class="${cumFlow > 0 ? 'pos' : (cumFlow < 0 ? 'neg' : 'neutral')}">${cumFlowStr}</span> | 순자산 대비 비율: <span class="${ratioClass}">${ratioStr}</span>)`;
+                } else {
+                    statsEl.innerHTML = `(Net Assets: <span class="bold-white">${netAssetsStr}</span> | Period Cum. Flow: <span class="${cumFlow > 0 ? 'pos' : (cumFlow < 0 ? 'neg' : 'neutral')}">${cumFlowStr}</span> | Ratio: <span class="${ratioClass}">${ratioStr}</span>)`;
+                }
+            } else {
+                statsEl.innerHTML = "";
+            }
         }
 
         function renderTrendChart(categories, dailyFlows, cumulativeFlows, isWeekly) {
@@ -756,14 +813,15 @@
                     formatter: function (params) {
                         let result = `<div style="font-weight:bold; margin-bottom:5px; color:#aaa;">${params[0].name}</div>`;
                         params.forEach(p => {
-                            let valStr = formatDollarJS(p.value);
+                            // formatDollarJS 대신 부호가 포함된 formatDollarWithSignJS 사용
+                            let valStr = formatDollarWithSignJS(p.value); 
                             let dotColor = p.color;
                             if (p.seriesType === 'bar') {
                                 dotColor = p.value >= 0 ? '#00b853' : '#f03b20';
                             }
                             result += `<div style="display:flex; justify-content:space-between; gap:15px; align-items:center;">
                                 <span><span style="display:inline-block; margin-right:5px; border-radius:50%; width:9px; height:9px; background-color:${dotColor};"></span>${p.seriesName}</span>
-                                <span style="font-weight:bold; ${p.seriesType === 'bar' ? 'color:' + (p.value >= 0 ? '#00b853' : '#f03b20') : ''}">${valStr}</span>
+                                <span style="font-weight:bold; ${p.seriesType === 'bar' ? 'color:' + (p.value >= 0 ? '#00b853' : '#f03b20') : 'color:#3498db'}">${valStr}</span>
                             </div>`;
                         });
                         return result;
@@ -884,6 +942,7 @@
             updateHeaderArrows();
         }
 
+        // ... [기존 renderTickerTable, renderEChartsDonut, updateHeaderArrows 등 함수 유지] ...
         function renderTickerTable(list) {
             const tickerTbody = document.getElementById('tickerTableBody');
             const t = i18n[currentLang];
@@ -929,7 +988,6 @@
             });
         }
 
-        // 6. ECharts 도넛 차트
         function renderEChartsDonut(list, selectedEtf) {
             const chartDom = document.getElementById('weight-chart-container');
             const chartBox = document.getElementById('chartSection');
