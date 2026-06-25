@@ -773,9 +773,9 @@
                 const ratioStr = `${ratioSign}${ratio.toFixed(2)}%`;
 
                 if (currentLang === 'ko') {
-                    statsEl.innerHTML = `(순자산: <span class="bold-white">${netAssetsStr}</span> | 선택 기간 누적 유출입: <span class="${cumFlow > 0 ? 'pos' : (cumFlow < 0 ? 'neg' : 'neutral')}">${cumFlowStr}</span> | 순자산 대비 비율: <span class="${ratioClass}">${ratioStr}</span>)`;
+                    statsEl.innerHTML = `(AUM: <span class="bold-white">${netAssetsStr}</span> | 선택 기간 누적 유출입: <span class="${cumFlow > 0 ? 'pos' : (cumFlow < 0 ? 'neg' : 'neutral')}">${cumFlowStr}</span> | AUM 대비 비율: <span class="${ratioClass}">${ratioStr}</span>)`;
                 } else {
-                    statsEl.innerHTML = `(Net Assets: <span class="bold-white">${netAssetsStr}</span> | Period Cum. Flow: <span class="${cumFlow > 0 ? 'pos' : (cumFlow < 0 ? 'neg' : 'neutral')}">${cumFlowStr}</span> | Ratio: <span class="${ratioClass}">${ratioStr}</span>)`;
+                    statsEl.innerHTML = `(AUM: <span class="bold-white">${netAssetsStr}</span> | Period Cum. Flow: <span class="${cumFlow > 0 ? 'pos' : (cumFlow < 0 ? 'neg' : 'neutral')}">${cumFlowStr}</span> | Ratio: <span class="${ratioClass}">${ratioStr}</span>)`;
                 }
             } else {
                 statsEl.innerHTML = "";
