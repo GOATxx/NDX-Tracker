@@ -2,8 +2,8 @@ name: Daily XL Series Data Update
 
 on:
   schedule:
-    # 매주 월~금요일 한국시간 오후 7시 4분 
-    - cron: "4 19 * * 1-5"
+    # 매주 월~금요일 한국시간 오후 6시 13분 
+    - cron: "13 18 * * 1-5"
       timezone: 'Asia/Seoul'
   workflow_dispatch: # 수동으로도 버튼을 눌러 실행할 수 있게 함
 
