@@ -61,6 +61,31 @@
         .neg { color: #f03b20; font-weight: bold; }
         .neutral { color: #aaaaaa; font-weight: bold; }
         .bold-white { color: white; font-weight: bold; }
+
+        /* Z-Score 게이지 바 스타일 */
+        .z-score-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .gauge-bar {
+            width: 100px;
+            height: 10px;
+            background: linear-gradient(to right, #f03b20, #444444, #00b853); /* 빨강(음수) -> 회색(0) -> 초록(양수) */
+            border-radius: 5px;
+            position: relative;
+        }
+        .gauge-pointer {
+            width: 6px;
+            height: 14px;
+            background-color: #ffffff;
+            position: absolute;
+            top: -2px;
+            border-radius: 2px;
+            transform: translateX(-50%);
+            border: 1px solid #121212;
+        }
     </style>
 </head>
 <body>
@@ -92,6 +117,7 @@
                         <th id="thSector">섹터 ETF</th>
                         <th id="thPrice">당일 종가 (증감)</th>
                         <th id="thFlow">자금 유출입</th>
+                        <th id="thZScore">Z-Score (20D)</th>
                         <th id="thIntensity">수급 강도 (20D)</th>
                         <th id="thRvol">상대 거래량 (20D)</th>
                         <th id="thBreadth">수급 확산도</th>
@@ -99,7 +125,7 @@
                     </tr>
                 </thead>
                 <tbody id="metricsTableBody">
-                    <tr><td colspan="7">Loading...</td></tr>
+                    <tr><td colspan="8">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -193,6 +219,7 @@
                 col_sector: "섹터 ETF",
                 col_price: "당일 종가 (증감)",
                 col_flow: "자금 유출입",
+                col_zscore: "Z-Score (20D)",
                 col_intensity: "수급 강도 (20D)",
                 col_rvol: "상대 거래량 (20D)",
                 col_breadth: "수급 확산도",
@@ -244,6 +271,7 @@
                 col_sector: "Sector ETF",
                 col_price: "Price (Change)",
                 col_flow: "Fund Flow",
+                col_zscore: "Z-Score (20D)",
                 col_intensity: "Flow Intensity (20D)",
                 col_rvol: "Rel. Vol (20D)",
                 col_breadth: "Weighted Breadth",
@@ -358,6 +386,7 @@
             document.getElementById('thSector').innerText = t.col_sector;
             document.getElementById('thPrice').innerText = t.col_price;
             document.getElementById('thFlow').innerText = t.col_flow;
+            document.getElementById('thZScore').innerText = t.col_zscore;
             document.getElementById('thIntensity').innerText = t.col_intensity;
             document.getElementById('thRvol').innerText = t.col_rvol;
             document.getElementById('thBreadth').innerText = t.col_breadth;
@@ -480,6 +509,44 @@
                         }
                     }
 
+                    // --- 20D Z-Score 산출 로직 ---
+                    let zScoreDisplay = `<span class="neutral">${t.no_data}</span>`;
+                    const historyKeys = Object.keys(globalMetricsData[etf]?.history || {}).sort();
+                    const curIdx = historyKeys.indexOf(actualDate);
+                    
+                    if (curIdx !== -1) {
+                        // 기준일 포함 과거 최대 20거래일 데이터 추출
+                        const windowDates = historyKeys.slice(Math.max(0, curIdx - 19), curIdx + 1);
+                        if (windowDates.length >= 2) {
+                            const flows = windowDates.map(d => globalMetricsData[etf].history[d].Fund_Flow.value);
+                            const mean = flows.reduce((sum, val) => sum + val, 0) / flows.length;
+                            const variance = flows.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / flows.length;
+                            const stdDev = Math.sqrt(variance);
+
+                            if (stdDev > 0) {
+                                const zScore = (rawFlow - mean) / stdDev;
+                                // Z-Score를 0%~100% 범위로 매핑 (하한 -3.0, 상한 +3.0 기준)
+                                let pct = ((zScore + 3) / 6) * 100;
+                                pct = Math.max(0, Math.min(100, pct));
+
+                                let zClass = 'neutral';
+                                if (zScore >= 1.5) zClass = 'pos';
+                                else if (zScore <= -1.5) zClass = 'neg';
+
+                                zScoreDisplay = `
+                                    <div class="z-score-container">
+                                        <span class="${zClass}" style="font-weight:600; min-width: 35px; text-align: right;">${(zScore > 0 ? '+' : '') + zScore.toFixed(2)}</span>
+                                        <div class="gauge-bar">
+                                            <div class="gauge-pointer" style="left: ${pct}%;"></div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                zScoreDisplay = `<span class="neutral">0.00</span>`;
+                            }
+                        }
+                    }
+
                     const rawIntensity = etfData.Fund_Flow_Intensity_20D.value;
                     const intensityDisplay = etfData.Fund_Flow_Intensity_20D.display === "데이터 부족" ? t.no_data : `${rawIntensity.toFixed(1)}${t.times}`;
                     const rvolDisplay = `${etfData.Relative_Volume.value.toFixed(1)}${t.times}`;
@@ -496,13 +563,14 @@
                         <td class="bold-white">${etf}</td>
                         <td class="${priceClass}">${etfData.ETF_Price ? etfData.ETF_Price.display : 'N/A'}</td>
                         <td class="${flowClass}">${flowDisplay}</td>
+                        <td>${zScoreDisplay}</td>
                         <td>${intensityDisplay}</td>
                         <td>${rvolDisplay}</td>
                         <td class="pos">${etfData.Weighted_Breadth.value.toFixed(1)}%</td>
                         <td class="${rsClass}">${rsDisplay}</td>
                     `;
                 } else {
-                    tr.innerHTML = `<td class="bold-white">${etf}</td><td colspan="6" class="neutral">${t.no_data}</td>`;
+                    tr.innerHTML = `<td class="bold-white">${etf}</td><td colspan="7" class="neutral">${t.no_data}</td>`;
                 }
                 metricsTbody.appendChild(tr);
             });
@@ -942,7 +1010,6 @@
             updateHeaderArrows();
         }
 
-        // ... [기존 renderTickerTable, renderEChartsDonut, updateHeaderArrows 등 함수 유지] ...
         function renderTickerTable(list) {
             const tickerTbody = document.getElementById('tickerTableBody');
             const t = i18n[currentLang];
