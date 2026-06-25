@@ -95,7 +95,7 @@
                         <th id="thIntensity">수급 강도 (20D)</th>
                         <th id="thRvol">상대 거래량 (20D)</th>
                         <th id="thBreadth">수급 확산도</th>
-                        <th id="thRs">성과 (vs SPY 5D)</th>
+                        <th id="thRs">성과 <span style="font-size: 11px; font-weight: normal; color: #888888; margin-left: 4px;">(vs SPY 5D)</span></th>
                     </tr>
                 </thead>
                 <tbody id="metricsTableBody">
@@ -196,7 +196,7 @@
                 col_intensity: "수급 강도 (20D)",
                 col_rvol: "상대 거래량 (20D)",
                 col_breadth: "수급 확산도",
-                col_rs: "성과 (vs SPY 5D)",
+                col_rs: "성과 <span style='font-size: 11px; font-weight: normal; color: #888888; margin-left: 4px;'>(vs SPY 5D)</span>",
                 lbl_date: "조회 일자:",
                 lbl_select: "👇 상세 조회할 섹터 선택:",
                 chart_title: "보유 비중 포트폴리오",
@@ -247,7 +247,7 @@
                 col_intensity: "Flow Intensity (20D)",
                 col_rvol: "Rel. Vol (20D)",
                 col_breadth: "Weighted Breadth",
-                col_rs: "RS (vs SPY 5D)",
+                col_rs: "RS <span style='font-size: 11px; font-weight: normal; color: #888888; margin-left: 4px;'>(vs SPY 5D)</span>",
                 lbl_date: "Date:",
                 lbl_select: "👇 Select Sector:",
                 chart_title: "Portfolio Holdings Weight",
@@ -349,7 +349,7 @@
             document.getElementById('thIntensity').innerText = t.col_intensity;
             document.getElementById('thRvol').innerText = t.col_rvol;
             document.getElementById('thBreadth').innerText = t.col_breadth;
-            document.getElementById('thRs').innerText = t.col_rs;
+            document.getElementById('thRs').innerHTML = t.col_rs; // innerText -> innerHTML 변경
 
             // 신규 트렌드 세션 헤더
             document.getElementById('titleTrend').innerText = t.title_trend;
