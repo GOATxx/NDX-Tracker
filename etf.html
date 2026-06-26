@@ -46,7 +46,9 @@
         .period-btn, .channel-period-btn { background-color: #222; border: 1px solid #444; color: #aaa; padding: 6px 15px; font-size: 14px; cursor: pointer; border-radius: 4px; font-weight: bold; transition: all 0.2s; }
         .period-btn:hover, .channel-period-btn:hover { background-color: #333; color: white; border-color: #00b853; }
         .period-btn.active, .channel-period-btn.active { background-color: #00b853; color: white; border-color: #00b853; }
-        #flow-trend-chart-container, #zscore-channel-chart-container { width: 100%; height: 480px; background-color: #1a1a1a; border-radius: 8px; }
+        /* 기존 코드를 아래와 같이 분리하여 트렌드 차트만 높이를 520px로 확장합니다 */
+        #flow-trend-chart-container { width: 100%; height: 520px; background-color: #1a1a1a; border-radius: 8px; }
+        #zscore-channel-chart-container { width: 100%; height: 480px; background-color: #1a1a1a; border-radius: 8px; }
 
         /* 테이블 디자인 */
         table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
@@ -253,6 +255,7 @@
                 cum_flow: "누적 자금 유출입량",
                 daily_flow: "당일 자금 유출입량",
                 weekly_flow: "주간 자금 유출입량",
+                etf_price_title: "ETF 종가",
 
                 // [신규] 변동성 채널 번역
                 title_channel_chart: "자금 유출입 변동성 채널 (Z-Score)",
@@ -311,6 +314,7 @@
                 cum_flow: "Cumulative Flow",
                 daily_flow: "Daily Flow",
                 weekly_flow: "Weekly Flow",
+                etf_price_title: "ETF Price",
 
                 // [신규] 변동성 채널 번역
                 title_channel_chart: "Fund Flow Volatility Channel (Z-Score)",
@@ -846,12 +850,17 @@
             const categories = [];
             const dailyFlows = [];
             const cumulativeFlows = [];
+            const priceData = []; // 종가 데이터를 저장할 배열 추가
 
             timelineData.forEach(item => {
                 cumulative += item.flowValue;
                 categories.push(item.dateLabel);
                 dailyFlows.push(item.flowValue);
                 cumulativeFlows.push(cumulative);
+
+                // 해당 날짜의 ETF 가격 정보 추출
+                const priceVal = history[item.dateLabel]?.ETF_Price?.value || 0;
+                priceData.push(priceVal);
             });
 
             window.currentTrendEtf = selectedEtf;
@@ -859,7 +868,8 @@
             window.currentPeriodCumulativeFlow = cumulativeFlows[cumulativeFlows.length - 1] || 0;
             updateTrendStatsUI();
 
-            renderTrendChart(categories, dailyFlows, cumulativeFlows, shouldGroupWeekly);
+            // renderTrendChart에 priceData 인자 추가 전달
+            renderTrendChart(categories, dailyFlows, cumulativeFlows, priceData, shouldGroupWeekly);
         }
 
         // 그래프 타이틀 우측 요약 지표 업데이트 함수
@@ -889,7 +899,7 @@
             }
         }
 
-        function renderTrendChart(categories, dailyFlows, cumulativeFlows, isWeekly) {
+        function renderTrendChart(categories, dailyFlows, cumulativeFlows, priceData, isWeekly) {
             const chartDom = document.getElementById('flow-trend-chart-container');
             if (!trendChartInstance) {
                 trendChartInstance = echarts.init(chartDom);
@@ -898,6 +908,7 @@
             const t = i18n[currentLang];
             const lineName = t.cum_flow;
             const barName = isWeekly ? t.weekly_flow : t.daily_flow;
+            const priceName = t.etf_price_title;
 
             function formatValueAxis(val) {
                 const absVal = Math.abs(val);
@@ -907,80 +918,118 @@
                 return val.toLocaleString();
             }
 
-            const bounds = calculateAlignedYAxisBounds(cumulativeFlows, dailyFlows);
-
             const option = {
+                // 상하 차트 마우스 커서 동기화
+                axisPointer: {
+                    link: [{ xAxisIndex: 'all' }],
+                    label: { backgroundColor: '#444' }
+                },
                 tooltip: {
                     trigger: 'axis',
-                    axisPointer: { type: 'shadow' },
-                    backgroundColor: 'rgba(30, 30, 30, 0.9)',
+                    axisPointer: { type: 'cross' },
+                    backgroundColor: 'rgba(30, 30, 30, 0.95)',
                     borderColor: '#444',
                     textStyle: { color: '#fff', fontSize: 12 },
                     formatter: function (params) {
-                        let result = `<div style="font-weight:bold; margin-bottom:5px; color:#aaa;">${params[0].name}</div>`;
-                        params.forEach(p => {
-                            let valStr = formatDollarWithSignJS(p.value); 
-                            let dotColor = p.color;
-                            if (p.seriesType === 'bar') {
-                                dotColor = p.value >= 0 ? '#00b853' : '#f03b20';
-                            }
-                            result += `<div style="display:flex; justify-content:space-between; gap:15px; align-items:center;">
-                                <span><span style="display:inline-block; margin-right:5px; border-radius:50%; width:9px; height:9px; background-color:${dotColor};"></span>${p.seriesName}</span>
-                                <span style="font-weight:bold; ${p.seriesType === 'bar' ? 'color:' + (p.value >= 0 ? '#00b853' : '#f03b20') : 'color:#3498db'}">${valStr}</span>
-                            </div>`;
+                        if (!params || params.length === 0) return '';
+                        const dateStr = params[0].name;
+                        let result = `<div style="font-weight:bold; margin-bottom:5px; color:#aaa;">${dateStr}</div>`;
+                        
+                        let priceVal = null;
+                        let cumVal = null;
+                        let flowVal = null;
+                        let flowColor = '';
 
-                            // Bar 계열(유출입액 막대) 정보 아래에 해당 일자의 AUM 및 대비 비율 추가
-                            if (p.seriesType === 'bar') {
-                                const selectedEtf = document.getElementById('etfSelect').value;
-                                const dateStr = p.name;
-                                const aum = globalMetricsData[selectedEtf]?.history[dateStr]?.ETF_Price?.AUM || 0;
-                                if (aum > 0) {
-                                    const ratio = (p.value / aum) * 100;
-                                    const ratioSign = ratio > 0 ? "+" : "";
-                                    const ratioColor = ratio > 0 ? '#00b853' : (ratio < 0 ? '#f03b20' : '#aaa');
-                                    
-                                    const labelAUM = currentLang === 'ko' ? 'AUM' : 'AUM';
-                                    const labelRatio = currentLang === 'ko' ? 'AUM 대비 비율' : 'Ratio to AUM';
-                                    
-                                    result += `
-                                        <div style="display:flex; justify-content:space-between; gap:15px; align-items:center; margin-left: 14px; font-size: 11px; color: #aaa; margin-top: 2px; margin-bottom: 2px;">
-                                            <span>└ ${labelAUM}:</span>
-                                            <span style="font-weight:bold; color:#ccc;">${formatDollarJS(aum)}</span>
-                                        </div>
-                                        <div style="display:flex; justify-content:space-between; gap:15px; align-items:center; margin-left: 14px; font-size: 11px; color: #aaa; margin-bottom: 4px;">
-                                            <span>└ ${labelRatio}:</span>
-                                            <span style="font-weight:bold; color:${ratioColor}">${ratioSign}${ratio.toFixed(3)}%</span>
-                                        </div>
-                                    `;
-                                }
+                        params.forEach(p => {
+                            if (p.seriesName === priceName) {
+                                priceVal = p.value;
+                            } else if (p.seriesName === lineName) {
+                                cumVal = p.value;
+                            } else if (p.seriesName === barName) {
+                                flowVal = p.value;
+                                flowColor = p.value >= 0 ? '#00b853' : '#f03b20';
                             }
                         });
+
+                        // 종가 정보 표시
+                        if (priceVal !== null) {
+                            result += `<div style="display:flex; justify-content:space-between; gap:15px; align-items:center;">
+                                <span><span style="display:inline-block; margin-right:5px; border-radius:50%; width:9px; height:9px; background-color:#f39c12;"></span>${priceName}</span>
+                                <span style="font-weight:bold; color:#f39c12;">$${priceVal.toFixed(2)}</span>
+                            </div>`;
+                        }
+                        // 누적 수급 표시
+                        if (cumVal !== null) {
+                            result += `<div style="display:flex; justify-content:space-between; gap:15px; align-items:center;">
+                                <span><span style="display:inline-block; margin-right:5px; border-radius:50%; width:9px; height:9px; background-color:#3498db;"></span>${lineName}</span>
+                                <span style="font-weight:bold; color:#3498db;">${formatDollarWithSignJS(cumVal)}</span>
+                            </div>`;
+                        }
+                        // 당일/주간 유출입 표시 및 AUM 대비 비율 연산
+                        if (flowVal !== null) {
+                            result += `<div style="display:flex; justify-content:space-between; gap:15px; align-items:center; margin-bottom: 3px;">
+                                <span><span style="display:inline-block; margin-right:5px; border-radius:50%; width:9px; height:9px; background-color:${flowColor};"></span>${barName}</span>
+                                <span style="font-weight:bold; color:${flowColor}">${formatDollarWithSignJS(flowVal)}</span>
+                            </div>`;
+
+                            const selectedEtf = document.getElementById('etfSelect').value;
+                            const aum = globalMetricsData[selectedEtf]?.history[dateStr]?.ETF_Price?.AUM || 0;
+                            if (aum > 0) {
+                                const ratio = (flowVal / aum) * 100;
+                                const ratioSign = ratio > 0 ? "+" : "";
+                                const ratioColor = ratio > 0 ? '#00b853' : (ratio < 0 ? '#f03b20' : '#aaa');
+                                
+                                const labelAUM = currentLang === 'ko' ? '기준 AUM' : 'AUM';
+                                const labelRatio = currentLang === 'ko' ? 'AUM 대비 비율' : 'Ratio to AUM';
+                                
+                                result += `
+                                    <div style="display:flex; justify-content:space-between; gap:15px; align-items:center; margin-left: 14px; font-size: 11px; color: #aaa; margin-top: 1px;">
+                                        <span>└ ${labelAUM}:</span>
+                                        <span style="font-weight:bold; color:#ccc;">${formatDollarJS(aum)}</span>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; gap:15px; align-items:center; margin-left: 14px; font-size: 11px; color: #aaa; margin-bottom: 2px;">
+                                        <span>└ ${labelRatio}:</span>
+                                        <span style="font-weight:bold; color:${ratioColor}">${ratioSign}${ratio.toFixed(3)}%</span>
+                                    </div>
+                                `;
+                            }
+                        }
                         return result;
                     }
                 },
                 legend: {
-                    data: [lineName, barName],
+                    data: [priceName, lineName, barName],
                     textStyle: { color: '#ccc' },
                     bottom: 5
                 },
-                grid: {
-                    top: 50,
-                    bottom: 60,
-                    left: '6%',
-                    right: '6%'
-                },
-                xAxis: {
-                    type: 'category',
-                    data: categories,
-                    axisLine: { lineStyle: { color: '#444' } },
-                    axisLabel: { color: '#aaa', fontSize: 11 }
-                },
-                yAxis: [
+                // 수직 분할 차트 레이아웃 그리드 설정
+                grid: [
+                    { left: '6%', right: '6%', top: '8%', height: '52%' },  // 상단 (가격 & 누적수급)
+                    { left: '6%', right: '6%', top: '68%', height: '22%' }  // 하단 (개별수급 막대)
+                ],
+                xAxis: [
                     {
+                        type: 'category',
+                        gridIndex: 0,
+                        data: categories,
+                        axisLine: { lineStyle: { color: '#444' } },
+                        axisLabel: { show: false }, // 상단 그리드는 일자 라벨 생략하여 중복 방지
+                        axisTick: { show: false }
+                    },
+                    {
+                        type: 'category',
+                        gridIndex: 1,
+                        data: categories,
+                        axisLine: { lineStyle: { color: '#444' } },
+                        axisLabel: { color: '#aaa', fontSize: 11 }
+                    }
+                ],
+                yAxis: [
+                    // Grid 0 - 좌측 축: 누적 수급액
+                    {
+                        gridIndex: 0,
                         type: 'value',
                         name: lineName,
-                        min: bounds.minL,
-                        max: bounds.maxL,
                         nameTextStyle: { color: '#aaa', fontSize: 11, align: 'left' },
                         axisLine: { show: false },
                         axisLabel: { 
@@ -989,24 +1038,41 @@
                         },
                         splitLine: { lineStyle: { color: '#2d2d2d' } }
                     },
+                    // Grid 0 - 우측 축: ETF 가격
                     {
+                        gridIndex: 0,
+                        type: 'value',
+                        name: priceName,
+                        position: 'right',
+                        scale: true, // 주가 변동 범위에 맞게 축 눈금 최적화 자동 컷팅
+                        nameTextStyle: { color: '#aaa', fontSize: 11, align: 'right' },
+                        axisLine: { show: false },
+                        axisLabel: { 
+                            color: '#aaa',
+                            formatter: function(value) { return '$' + value.toFixed(1); }
+                        },
+                        splitLine: { show: false }
+                    },
+                    // Grid 1 - 좌측 축: 개별 유출입량
+                    {
+                        gridIndex: 1,
                         type: 'value',
                         name: barName,
-                        min: bounds.minR,
-                        max: bounds.maxR,
-                        nameTextStyle: { color: '#aaa', fontSize: 11, align: 'right' },
+                        nameTextStyle: { color: '#aaa', fontSize: 10, align: 'left' },
                         axisLine: { show: false },
                         axisLabel: { 
                             color: '#aaa',
                             formatter: function(value) { return formatValueAxis(value); }
                         },
-                        splitLine: { show: false }
+                        splitLine: { lineStyle: { color: '#2d2d2d' } }
                     }
                 ],
                 series: [
+                    // 1) 누적 유출입량 (상단 좌측 Y축 적용)
                     {
                         name: lineName,
                         type: 'line',
+                        xAxisIndex: 0,
                         yAxisIndex: 0,
                         data: cumulativeFlows,
                         smooth: true,
@@ -1017,15 +1083,29 @@
                         itemStyle: { color: '#3498db' },
                         areaStyle: {
                             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: 'rgba(52, 152, 219, 0.25)' },
+                                { offset: 0, color: 'rgba(52, 152, 219, 0.2)' },
                                 { offset: 1, color: 'rgba(52, 152, 219, 0)' }
                             ])
                         }
                     },
+                    // 2) ETF 종가 가격 (상단 우측 Y축 적용)
+                    {
+                        name: priceName,
+                        type: 'line',
+                        xAxisIndex: 0,
+                        yAxisIndex: 1,
+                        data: priceData,
+                        smooth: true,
+                        symbol: 'none',
+                        lineStyle: { width: 2.5, color: '#f39c12' }, // 황금색 계열
+                        itemStyle: { color: '#f39c12' }
+                    },
+                    // 3) 당일/주간 유출입 막대 (하단 그리드 적용)
                     {
                         name: barName,
                         type: 'bar',
-                        yAxisIndex: 1,
+                        xAxisIndex: 1,
+                        yAxisIndex: 2,
                         data: dailyFlows,
                         itemStyle: {
                             color: function(params) {
