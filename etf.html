@@ -928,6 +928,32 @@
                                 <span><span style="display:inline-block; margin-right:5px; border-radius:50%; width:9px; height:9px; background-color:${dotColor};"></span>${p.seriesName}</span>
                                 <span style="font-weight:bold; ${p.seriesType === 'bar' ? 'color:' + (p.value >= 0 ? '#00b853' : '#f03b20') : 'color:#3498db'}">${valStr}</span>
                             </div>`;
+
+                            // Bar 계열(유출입액 막대) 정보 아래에 해당 일자의 AUM 및 대비 비율 추가
+                            if (p.seriesType === 'bar') {
+                                const selectedEtf = document.getElementById('etfSelect').value;
+                                const dateStr = p.name;
+                                const aum = globalMetricsData[selectedEtf]?.history[dateStr]?.ETF_Price?.AUM || 0;
+                                if (aum > 0) {
+                                    const ratio = (p.value / aum) * 100;
+                                    const ratioSign = ratio > 0 ? "+" : "";
+                                    const ratioColor = ratio > 0 ? '#00b853' : (ratio < 0 ? '#f03b20' : '#aaa');
+                                    
+                                    const labelAUM = currentLang === 'ko' ? '기준 AUM' : 'AUM';
+                                    const labelRatio = currentLang === 'ko' ? 'AUM 대비 비율' : 'Ratio to AUM';
+                                    
+                                    result += `
+                                        <div style="display:flex; justify-content:space-between; gap:15px; align-items:center; margin-left: 14px; font-size: 11px; color: #aaa; margin-top: 2px; margin-bottom: 2px;">
+                                            <span>└ ${labelAUM}:</span>
+                                            <span style="font-weight:bold; color:#ccc;">${formatDollarJS(aum)}</span>
+                                        </div>
+                                        <div style="display:flex; justify-content:space-between; gap:15px; align-items:center; margin-left: 14px; font-size: 11px; color: #aaa; margin-bottom: 4px;">
+                                            <span>└ ${labelRatio}:</span>
+                                            <span style="font-weight:bold; color:${ratioColor}">${ratioSign}${ratio.toFixed(3)}%</span>
+                                        </div>
+                                    `;
+                                }
+                            }
                         });
                         return result;
                     }
