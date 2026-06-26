@@ -681,7 +681,9 @@
 
                     window.loadedDetailEtf = selectedEtf;
                     window.loadedDetailDate = actualDate;
-                    window.currentTotalNetAssets = detailDataList.reduce((sum, item) => sum + item.holdings_value, 0);
+                    
+                    // XL_metrics.json 내 정의된 AUM 값을 직접 가져옴
+                    window.currentAUM = globalMetricsData[selectedEtf]?.history[actualDate]?.ETF_Price?.AUM || 0;
                     updateTrendStatsUI();
                 })
                 .catch(err => {
@@ -689,7 +691,7 @@
                     document.getElementById('chartSection').style.display = 'none';
                     window.loadedDetailEtf = null;
                     window.loadedDetailDate = null;
-                    window.currentTotalNetAssets = 0;
+                    window.currentAUM = 0;
                     updateTrendStatsUI();
                     console.error(err);
                 });
@@ -865,22 +867,22 @@
             const statsEl = document.getElementById('trendStats');
             if (!statsEl) return;
 
-            if (window.currentTotalNetAssets && window.currentTrendEtf === window.loadedDetailEtf && window.currentTrendDate === window.loadedDetailDate) {
-                const netAssets = window.currentTotalNetAssets;
+            if (window.currentAUM && window.currentTrendEtf === window.loadedDetailEtf && window.currentTrendDate === window.loadedDetailDate) {
+                const aumVal = window.currentAUM;
                 const cumFlow = window.currentPeriodCumulativeFlow || 0;
                 
-                const ratio = (cumFlow / netAssets) * 100;
+                const ratio = (cumFlow / aumVal) * 100;
                 const ratioSign = ratio > 0 ? "+" : "";
                 const ratioClass = ratio > 0 ? "pos" : (ratio < 0 ? "neg" : "neutral");
 
-                const netAssetsStr = formatDollarJS(netAssets);
+                const aumStr = formatDollarJS(aumVal);
                 const cumFlowStr = formatDollarWithSignJS(cumFlow);
                 const ratioStr = `${ratioSign}${ratio.toFixed(2)}%`;
 
                 if (currentLang === 'ko') {
-                    statsEl.innerHTML = `(AUM: <span class="bold-white">${netAssetsStr}</span> | 선택 기간 누적 유출입: <span class="${cumFlow > 0 ? 'pos' : (cumFlow < 0 ? 'neg' : 'neutral')}">${cumFlowStr}</span> | AUM 대비 비율: <span class="${ratioClass}">${ratioStr}</span>)`;
+                    statsEl.innerHTML = `(AUM: <span class="bold-white">${aumStr}</span> | 선택 기간 누적 유출입: <span class="${cumFlow > 0 ? 'pos' : (cumFlow < 0 ? 'neg' : 'neutral')}">${cumFlowStr}</span> | AUM 대비 비율: <span class="${ratioClass}">${ratioStr}</span>)`;
                 } else {
-                    statsEl.innerHTML = `(AUM: <span class="bold-white">${netAssetsStr}</span> | Period Cum. Flow: <span class="${cumFlow > 0 ? 'pos' : (cumFlow < 0 ? 'neg' : 'neutral')}">${cumFlowStr}</span> | Ratio: <span class="${ratioClass}">${ratioStr}</span>)`;
+                    statsEl.innerHTML = `(AUM: <span class="bold-white">${aumStr}</span> | Period Cum. Flow: <span class="${cumFlow > 0 ? 'pos' : (cumFlow < 0 ? 'neg' : 'neutral')}">${cumFlowStr}</span> | Ratio: <span class="${ratioClass}">${ratioStr}</span>)`;
                 }
             } else {
                 statsEl.innerHTML = "";
