@@ -32,9 +32,9 @@ if os.path.exists(dates_file_path):
 
 # 지정된 이전 파일이 없으면 latest.json을 대체용으로 로드 시도
 if not prev_file_path or not os.path.exists(prev_file_path):
-    prev_file_path = 'data/latest.json'
+    prev_file_path = 'data/latest_backup.json'
     if os.path.exists(prev_file_path):
-        print("📂 특정 날짜 JSON 파일이 없어 latest.json 파일을 대체하여 로드합니다.")
+        print("📂 특정 날짜 JSON 파일이 없어 latest_backup.json 파일을 대체하여 로드합니다.")
 
 # 이전 데이터 파일에서 market_date, QQQ_date, Shares Held 정보 추출
 if prev_file_path and os.path.exists(prev_file_path):
@@ -213,7 +213,7 @@ if stock_data:
     }
     
     file_path = f'data/{market_date}.json'
-    latest_path = 'data/latest.json'
+    latest_path = 'data/latest_backup.json'
     
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(final_output, f, ensure_ascii=False, indent=4)
@@ -231,7 +231,7 @@ if stock_data:
     all_files = os.listdir('data')
     date_files = [
         f.replace('.json', '') for f in all_files 
-        if f.endswith('.json') and f not in ['latest.json', 'available_dates.json']
+        if f.endswith('.json') and f not in ['latest_backup.json', 'available_dates.json']
     ]
     
     date_files.sort(reverse=True)
