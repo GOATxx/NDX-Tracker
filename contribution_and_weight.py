@@ -9,27 +9,50 @@ import time
 print("🚀 나스닥 100 메타데이터 및 자금 흐름 계산 시작 (1일 1회 실행 모드)...\n")
 
 # ==========================================
-# 0. 과거 데이터(어제 스냅샷) 불러오기
+# 0. 과거 데이터(available_dates.json의 최신 날짜 스냅샷) 불러오기
 # ==========================================
 prev_shares_data = {}
 old_market_date = None
-latest_file_path = 'data/latest.json'
+old_QQQ_date = None
+prev_file_path = None
 
-if os.path.exists(latest_file_path):
+dates_file_path = 'data/available_dates.json'
+
+# available_dates.json에서 가장 최신 날짜 가져오기
+if os.path.exists(dates_file_path):
     try:
-        with open(latest_file_path, 'r', encoding='utf-8') as f:
+        with open(dates_file_path, 'r', encoding='utf-8') as f:
+            dates_list = json.load(f)
+            if isinstance(dates_list, list) and len(dates_list) > 0:
+                latest_date = dates_list[0]
+                prev_file_path = f'data/{latest_date}.json'
+                print(f"📂 available_dates.json에서 최신 날짜 감지: {latest_date}")
+    except Exception as e:
+        print(f"⚠️ available_dates.json을 읽는 중 에러 발생: {e}")
+
+# 지정된 이전 파일이 없으면 latest.json을 대체용으로 로드 시도
+if not prev_file_path or not os.path.exists(prev_file_path):
+    prev_file_path = 'data/latest.json'
+    if os.path.exists(prev_file_path):
+        print("📂 특정 날짜 JSON 파일이 없어 latest.json 파일을 대체하여 로드합니다.")
+
+# 이전 데이터 파일에서 market_date, QQQ_date, Shares Held 정보 추출
+if prev_file_path and os.path.exists(prev_file_path):
+    try:
+        with open(prev_file_path, 'r', encoding='utf-8') as f:
             old_json = json.load(f)
             old_meta = old_json.get('metadata', {}) if isinstance(old_json, dict) else {}
             old_data = old_json.get('data', []) if isinstance(old_json, dict) else old_json
             
             old_market_date = old_meta.get('market_date')
+            old_QQQ_date = old_meta.get('QQQ_date')
             
             for item in old_data:
                 ticker = item.get('Ticker')
                 if ticker and 'Shares Held' in item:
                     prev_shares_data[ticker] = item['Shares Held']
                         
-        print(f"📂 이전 데이터 로드 완료. (이전 시장일: {old_market_date})")
+        print(f"📂 이전 데이터 로드 완료. (이전 시장일: {old_market_date}, 이전 QQQ 기준일: {old_QQQ_date})")
     except Exception as e:
         print(f"⚠️ 이전 데이터를 읽는 중 에러 발생: {e}")
 
@@ -46,11 +69,6 @@ if len(hist_ndx) < 2:
 
 yesterday_ndx_close = hist_ndx['Close'].iloc[0]
 market_date = hist_ndx.index[1].strftime('%Y-%m-%d')
-
-# 💡 [단순화된 방어 로직] 휴장일 감지 (시장 날짜가 똑같으면 즉시 종료)
-if market_date == old_market_date:
-    print("\n🛑 [휴장일 감지] 오늘 시장 데이터가 이전과 동일합니다. 로봇을 종료합니다.")
-    exit()
 
 current_ndx_close = hist_ndx['Close'].iloc[1]
 ndx_point_change = current_ndx_close - yesterday_ndx_close
@@ -88,6 +106,11 @@ try:
     found_date = find_date(json_data)
     if found_date: QQQ_date = found_date
     print(f" - QQQ 기준일: {QQQ_date}")
+
+    # 💡 [중복 실행 및 휴장일 검지] market_date 또는 QQQ_date 중 하나라도 이전과 동일하면 종료
+    if market_date == old_market_date or QQQ_date == old_QQQ_date:
+        print(f"\n🛑 [실행 중단] 시장 거래일({market_date}) 또는 QQQ 기준일({QQQ_date})이 이전 기록(시장일: {old_market_date}, QQQ 기준일: {old_QQQ_date})과 동일합니다. 수집을 정지합니다.")
+        exit()
 
     holdings_list = None
     if isinstance(json_data, list): holdings_list = json_data
@@ -151,7 +174,6 @@ for index, row in weights_df.iterrows():
             current_price = hist['Close'].iloc[1]
             change_percent = ((current_price - prev_close) / prev_close) * 100
             
-            # 💡 [단순화] 항상 불러온 가중치를 바탕으로 계산합니다.
             point_contribution = (change_percent / 100) * (weight_percent / 100) * yesterday_ndx_close
             
             prev_shares = prev_shares_data.get(ticker, current_shares)
