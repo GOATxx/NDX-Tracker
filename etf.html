@@ -13,7 +13,27 @@
         
         /* 언어 선택기 스타일 */
         .lang-selector { text-align: right; margin-bottom: 10px; }
-        .lang-btn { background-color: #222; border: 1px solid #444; color: #aaa; padding: 5px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-left: 5px; }
+        .lang-btn { 
+            background-color: #222; 
+            border: 1px solid #444; 
+            color: #aaa; 
+            
+            /* 1. 상하 패딩을 없애고 세로 높이를 고정합니다 */
+            height: 30px;
+            padding: 0 12px; 
+            box-sizing: border-box; /* 패딩과 테두리를 높이에 포함시킵니다 */
+
+            font-size: 13px; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            margin-left: 5px; 
+
+            /* 2. 한글과 영문 텍스트가 정확히 세로 중앙에 오도록 정렬합니다 */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
         .lang-btn.active { background-color: #00b853; color: white; border-color: #00b853; }
 
         /* 탭 디자인 */
