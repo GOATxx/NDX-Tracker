@@ -73,7 +73,7 @@
 
         h2 { font-size: 20px; margin-bottom: 15px; color: #e0e0e0; }
         table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 50px; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #2d2d2d; }
+        th, td { padding: 12px 15px; text-align: center; border-bottom: 1px solid #2d2d2d; }
         th { background-color: #2a2a2a; color: #aaaaaa; font-weight: bold; }
         
         th.sortable { cursor: pointer; user-select: none; transition: background-color 0.2s; }
@@ -541,6 +541,7 @@
             });
         }
 
+        // 다국어 상태 전환을 위한 텍스트 매핑
         function getTranslationForHeaderKey(key) {
             const t = i18n[currentLang];
             const mapping = {
