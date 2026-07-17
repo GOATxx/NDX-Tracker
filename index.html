@@ -362,7 +362,7 @@
         // QQQ 자금 유출입 데이터(QQQ_metrics.json) 및 거래 일자 동시 비동기 로딩 [2]
         Promise.all([
             fetch(baseUrl + 'available_dates.json').then(res => res.json()),
-            fetch('./QQQ_metrics.json').then(res => res.json()).catch(err => {
+            fetch('./data/QQQ_metrics.json').then(res => res.json()).catch(err => {
                 console.error("QQQ 수급 정보 파싱 실패", err);
                 return {};
             })
