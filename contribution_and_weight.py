@@ -61,7 +61,8 @@ if prev_file_path and os.path.exists(prev_file_path):
 # ==========================================
 print("\n[1/3] 나스닥 100 지수 및 시장 날짜 확인 중...")
 ndx = yf.Ticker("^NDX")
-hist_ndx = ndx.history(period="2d")
+# auto_adjust=False 옵션 적용
+hist_ndx = ndx.history(period="2d", auto_adjust=False)
 
 if len(hist_ndx) < 2:
     print("🚨 지수 데이터를 가져오는 데 실패했습니다.")
@@ -157,6 +158,7 @@ except Exception as e:
 # ==========================================
 print("\n[3/3] 최종 연산 중...")
 stock_data = []
+fund_flow_sum = 0.0  # 자금 흐름(Fund Flow) 계산을 위한 합계 변수 초기화
 
 for index, row in weights_df.iterrows():
     ticker = row['Symbol']
@@ -165,7 +167,8 @@ for index, row in weights_df.iterrows():
     
     try:
         stock = yf.Ticker(ticker)
-        hist = stock.history(period="2d")
+        # auto_adjust=False 옵션 적용
+        hist = stock.history(period="2d", auto_adjust=False)
         try: market_cap = stock.fast_info['market_cap']
         except: market_cap = stock.info.get('marketCap', 0)
         
@@ -179,6 +182,9 @@ for index, row in weights_df.iterrows():
             prev_shares = prev_shares_data.get(ticker, current_shares)
             shares_change = current_shares - prev_shares
             shares_change_pct = (shares_change / prev_shares * 100) if prev_shares > 0 else 0
+            
+            # 각 종목별 Shares Change값과 QQQ_date 기준 각 종목별 전날 종가(prev_close)를 곱해 더함
+            fund_flow_sum += shares_change * prev_close
             
             stock_data.append({
                 'Ticker': ticker,
@@ -224,6 +230,57 @@ if stock_data:
     print(f"\n✅ 완료! 나스닥 전체 지수 정보가 포함된 최종 JSON이 생성되었습니다.")
 
 # ==========================================
+# 4.5 QQQ Metrics (Fund Flow) 계산 및 추가 저장
+# ==========================================
+    print("\n[추가작업] QQQ Metrics (ETF Price 및 Fund Flow) 계산 및 저장 중...")
+    
+    try:
+        qqq_ticker = yf.Ticker("QQQ")
+        # auto_adjust=False 옵션 적용
+        qqq_hist = qqq_ticker.history(period="2d", auto_adjust=False)
+        
+        if len(qqq_hist) >= 2:
+            prev_qqq_close = qqq_hist['Close'].iloc[0]
+            current_qqq_close = qqq_hist['Close'].iloc[1]
+            qqq_change_amt = current_qqq_close - prev_qqq_close
+            qqq_change_pct = (qqq_change_amt / prev_qqq_close) * 100
+        
+            
+            metrics_path = 'data/QQQ_metrics.json'
+            metrics_data = {}
+            
+            # 기존 metrics 파일이 있으면 로드
+            if os.path.exists(metrics_path):
+                try:
+                    with open(metrics_path, 'r', encoding='utf-8') as f:
+                        metrics_data = json.load(f)
+                except Exception as e:
+                    print(f"⚠️ 기존 QQQ_metrics.json을 읽는 중 에러 발생: {e}")
+            
+            # 신규 데이터 추가 또는 덮어쓰기
+            metrics_data["QQQ"]["history"][QQQ_date] = {
+                "ETF_Price": {
+                    "value": round(prev_qqq_close, 2),
+                    "display": f"${prev_qqq_close:,.2f}"
+                },
+                "Fund_Flow": {
+                    "value": round(fund_flow_sum, 2),
+                }
+            }
+            
+            # 날짜를 기준으로 내림차순(최신순) 정렬하여 저장
+            sorted_metrics_data = dict(sorted(metrics_data.items(), key=lambda x: x[0], reverse=True))
+            
+            with open(metrics_path, 'w', encoding='utf-8') as f:
+                json.dump(sorted_metrics_data, f, ensure_ascii=False, indent=4)
+                
+            print(f"✅ QQQ_metrics.json 업데이트 완료! (기준일: {QQQ_date}, 흐름: {round(fund_flow_sum, 2)})")
+        else:
+            print("⚠️ QQQ ETF 가격 데이터를 가져오는 데 실패하여 QQQ_metrics.json 업데이트를 건너뜁니다.")
+    except Exception as e:
+        print(f"⚠️ QQQ Metrics 계산 중 에러 발생: {e}")
+
+# ==========================================
 # 5. 웹사이트용 '메뉴판(날짜 목록)' 만들기
 # ==========================================
     print("\n[추가작업] 웹사이트에서 읽어갈 날짜 목록(메뉴판)을 생성합니다...")
@@ -231,7 +288,7 @@ if stock_data:
     all_files = os.listdir('data')
     date_files = [
         f.replace('.json', '') for f in all_files 
-        if f.endswith('.json') and f not in ['latest_backup.json', 'available_dates.json']
+        if f.endswith('.json') and f not in ['latest_backup.json', 'available_dates.json', 'QQQ_metrics.json']
     ]
     
     date_files.sort(reverse=True)
