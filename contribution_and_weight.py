@@ -288,7 +288,7 @@ if stock_data:
     all_files = os.listdir('data')
     date_files = [
         f.replace('.json', '') for f in all_files 
-        if f.endswith('.json') and f not in ['latest_backup.json', 'available_dates.json', 'QQQ_metrics.json']
+        if f.endswith('.json') and f not in ['latest_backup.json', 'available_dates.json', 'QQQ_metrics.json', 'QNDX_holdings.json']
     ]
     
     date_files.sort(reverse=True)
