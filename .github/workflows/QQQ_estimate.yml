@@ -1,0 +1,52 @@
+name: Estimate QQQ Flow by QNDX
+
+on:
+  schedule:
+    # 한국시간(KST) 월~금 오후 6시 30분 -> UTC 월~금 오전 9시 30분
+    - cron: '30 9 * * 1-5'
+  workflow_dispatch: # 필요한 경우 수동으로도 실행할 수 있도록 설정
+
+permissions:
+  contents: write # 데이터 업데이트 후 리포지토리에 push하기 위해 필요합니다.
+
+jobs:
+  run-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 코드 체크아웃
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. 파이썬 환경 구성
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 3. 필요한 라이브러리 설치
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pandas yfinance openpyxl
+
+      # 4. 스크립트 실행
+      - name: Run estimate script
+        run: python estimate_qqq_flow_by_qndx.py
+
+      # 5. 업데이트된 JSON 데이터를 Git 리포지토리에 커밋 및 푸시
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # data 폴더 내의 수정되거나 새로 생성된 JSON 파일 등록
+          git add data/
+          
+          # 변경사항이 있는 경우에만 커밋 및 푸시 진행
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-update: QQQ flow estimate data"
+            git push
+          else
+            echo "No changes detected to commit."
+          fi
