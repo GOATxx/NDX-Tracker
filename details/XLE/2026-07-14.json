@@ -1,0 +1,470 @@
+{
+    "etf": "XLE",
+    "date": "2026-07-14",
+    "ticker_details": {
+        "XOM": {
+            "price": 145.09,
+            "price_change_pct": 0.4,
+            "rs_momentum": 1.85,
+            "weight_current": 20.1019,
+            "shares_current": 52352449,
+            "shares_change": 142308,
+            "dollar_flow": 20647467.2,
+            "display": {
+                "price": "$145.09",
+                "price_change_pct": "+0.40%",
+                "rs_momentum": "SPY 대비 +1.85%p",
+                "shares_current": "52,352,449주",
+                "holdings_value": "$7.60B",
+                "dollar_flow": "$20.65M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "CVX": {
+            "price": 181.76,
+            "price_change_pct": -0.24,
+            "rs_momentum": 3.9,
+            "weight_current": 14.7412,
+            "shares_current": 30645896,
+            "shares_change": 83304,
+            "dollar_flow": 15141334.58,
+            "display": {
+                "price": "$181.76",
+                "price_change_pct": "-0.24%",
+                "rs_momentum": "SPY 대비 +3.90%p",
+                "shares_current": "30,645,896주",
+                "holdings_value": "$5.57B",
+                "dollar_flow": "$15.14M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "COP": {
+            "price": 111.87,
+            "price_change_pct": -0.87,
+            "rs_momentum": 2.61,
+            "weight_current": 5.9043,
+            "shares_current": 19943111,
+            "shares_change": 54216,
+            "dollar_flow": 6065144.07,
+            "display": {
+                "price": "$111.87",
+                "price_change_pct": "-0.87%",
+                "rs_momentum": "SPY 대비 +2.61%p",
+                "shares_current": "19,943,111주",
+                "holdings_value": "$2.23B",
+                "dollar_flow": "$6.07M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "MPC": {
+            "price": 303.4,
+            "price_change_pct": 2.2,
+            "rs_momentum": 13.37,
+            "weight_current": 4.9457,
+            "shares_current": 6159505,
+            "shares_change": 16740,
+            "dollar_flow": 5078915.9,
+            "display": {
+                "price": "$303.40",
+                "price_change_pct": "+2.20%",
+                "rs_momentum": "SPY 대비 +13.37%p",
+                "shares_current": "6,159,505주",
+                "holdings_value": "$1.87B",
+                "dollar_flow": "$5.08M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "PSX": {
+            "price": 201.45,
+            "price_change_pct": 1.59,
+            "rs_momentum": 12.09,
+            "weight_current": 4.8907,
+            "shares_current": 9173538,
+            "shares_change": 24948,
+            "dollar_flow": 5025774.52,
+            "display": {
+                "price": "$201.45",
+                "price_change_pct": "+1.59%",
+                "rs_momentum": "SPY 대비 +12.09%p",
+                "shares_current": "9,173,538주",
+                "holdings_value": "$1.85B",
+                "dollar_flow": "$5.03M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "VLO": {
+            "price": 301.43,
+            "price_change_pct": 1.91,
+            "rs_momentum": 12.67,
+            "weight_current": 4.7825,
+            "shares_current": 5995236,
+            "shares_change": 16308,
+            "dollar_flow": 4915720.32,
+            "display": {
+                "price": "$301.43",
+                "price_change_pct": "+1.91%",
+                "rs_momentum": "SPY 대비 +12.67%p",
+                "shares_current": "5,995,236주",
+                "holdings_value": "$1.81B",
+                "dollar_flow": "$4.92M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "EOG": {
+            "price": 138.01,
+            "price_change_pct": -1.15,
+            "rs_momentum": 2.03,
+            "weight_current": 4.4202,
+            "shares_current": 12102293,
+            "shares_change": 32904,
+            "dollar_flow": 4541080.86,
+            "display": {
+                "price": "$138.01",
+                "price_change_pct": "-1.15%",
+                "rs_momentum": "SPY 대비 +2.03%p",
+                "shares_current": "12,102,293주",
+                "holdings_value": "$1.67B",
+                "dollar_flow": "$4.54M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "SLB": {
+            "price": 47.54,
+            "price_change_pct": 0.38,
+            "rs_momentum": 1.86,
+            "weight_current": 4.3312,
+            "shares_current": 34425746,
+            "shares_change": 93564,
+            "dollar_flow": 4448032.65,
+            "display": {
+                "price": "$47.54",
+                "price_change_pct": "+0.38%",
+                "rs_momentum": "SPY 대비 +1.86%p",
+                "shares_current": "34,425,746주",
+                "holdings_value": "$1.64B",
+                "dollar_flow": "$4.45M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "WMB": {
+            "price": 75.98,
+            "price_change_pct": 2.04,
+            "rs_momentum": 0.65,
+            "weight_current": 4.2931,
+            "shares_current": 21350405,
+            "shares_change": 58032,
+            "dollar_flow": 4409271.55,
+            "display": {
+                "price": "$75.98",
+                "price_change_pct": "+2.04%",
+                "rs_momentum": "SPY 대비 +0.65%p",
+                "shares_current": "21,350,405주",
+                "holdings_value": "$1.62B",
+                "dollar_flow": "$4.41M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "KMI": {
+            "price": 32.54,
+            "price_change_pct": 0.93,
+            "rs_momentum": -0.4,
+            "weight_current": 4.1347,
+            "shares_current": 48013500,
+            "shares_change": 130500,
+            "dollar_flow": 4246470.12,
+            "display": {
+                "price": "$32.54",
+                "price_change_pct": "+0.93%",
+                "rs_momentum": "SPY 대비 -0.40%p",
+                "shares_current": "48,013,500주",
+                "holdings_value": "$1.56B",
+                "dollar_flow": "$4.25M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "TRGP": {
+            "price": 281.6,
+            "price_change_pct": 0.79,
+            "rs_momentum": 2.29,
+            "weight_current": 3.9229,
+            "shares_current": 5263957,
+            "shares_change": 14292,
+            "dollar_flow": 4024627.29,
+            "display": {
+                "price": "$281.60",
+                "price_change_pct": "+0.79%",
+                "rs_momentum": "SPY 대비 +2.29%p",
+                "shares_current": "5,263,957주",
+                "holdings_value": "$1.48B",
+                "dollar_flow": "$4.02M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "OKE": {
+            "price": 91.9,
+            "price_change_pct": -0.31,
+            "rs_momentum": 0.81,
+            "weight_current": 3.7577,
+            "shares_current": 15450649,
+            "shares_change": 42012,
+            "dollar_flow": 3860902.86,
+            "display": {
+                "price": "$91.90",
+                "price_change_pct": "-0.31%",
+                "rs_momentum": "SPY 대비 +0.81%p",
+                "shares_current": "15,450,649주",
+                "holdings_value": "$1.42B",
+                "dollar_flow": "$3.86M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "BKR": {
+            "price": 57.78,
+            "price_change_pct": 0.21,
+            "rs_momentum": 5.53,
+            "weight_current": 3.7199,
+            "shares_current": 24329149,
+            "shares_change": 66132,
+            "dollar_flow": 3821106.88,
+            "display": {
+                "price": "$57.78",
+                "price_change_pct": "+0.21%",
+                "rs_momentum": "SPY 대비 +5.53%p",
+                "shares_current": "24,329,149주",
+                "holdings_value": "$1.41B",
+                "dollar_flow": "$3.82M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "DVN": {
+            "price": 43.4,
+            "price_change_pct": -0.75,
+            "rs_momentum": 1.78,
+            "weight_current": 3.2475,
+            "shares_current": 28274466,
+            "shares_change": 76860,
+            "dollar_flow": 3335724.12,
+            "display": {
+                "price": "$43.40",
+                "price_change_pct": "-0.75%",
+                "rs_momentum": "SPY 대비 +1.78%p",
+                "shares_current": "28,274,466주",
+                "holdings_value": "$1.23B",
+                "dollar_flow": "$3.34M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "OXY": {
+            "price": 54.57,
+            "price_change_pct": -0.44,
+            "rs_momentum": 5.04,
+            "weight_current": 2.5715,
+            "shares_current": 17806295,
+            "shares_change": 48384,
+            "dollar_flow": 2640314.87,
+            "display": {
+                "price": "$54.57",
+                "price_change_pct": "-0.44%",
+                "rs_momentum": "SPY 대비 +5.04%p",
+                "shares_current": "17,806,295주",
+                "holdings_value": "$971.69M",
+                "dollar_flow": "$2.64M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "FANG": {
+            "price": 190.69,
+            "price_change_pct": -0.47,
+            "rs_momentum": 5.06,
+            "weight_current": 2.4022,
+            "shares_current": 4760200,
+            "shares_change": 12924,
+            "dollar_flow": 2464477.59,
+            "display": {
+                "price": "$190.69",
+                "price_change_pct": "-0.47%",
+                "rs_momentum": "SPY 대비 +5.06%p",
+                "shares_current": "4,760,200주",
+                "holdings_value": "$907.72M",
+                "dollar_flow": "$2.46M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "EQT": {
+            "price": 49.81,
+            "price_change_pct": 0.18,
+            "rs_momentum": -4.32,
+            "weight_current": 2.022,
+            "shares_current": 15338988,
+            "shares_change": 41688,
+            "dollar_flow": 2076479.34,
+            "display": {
+                "price": "$49.81",
+                "price_change_pct": "+0.18%",
+                "rs_momentum": "SPY 대비 -4.32%p",
+                "shares_current": "15,338,988주",
+                "holdings_value": "$764.04M",
+                "dollar_flow": "$2.08M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "HAL": {
+            "price": 35.42,
+            "price_change_pct": 0.6,
+            "rs_momentum": 4.27,
+            "weight_current": 1.9204,
+            "shares_current": 20486932,
+            "shares_change": 55692,
+            "dollar_flow": 1972610.54,
+            "display": {
+                "price": "$35.42",
+                "price_change_pct": "+0.60%",
+                "rs_momentum": "SPY 대비 +4.27%p",
+                "shares_current": "20,486,932주",
+                "holdings_value": "$725.65M",
+                "dollar_flow": "$1.97M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "TPL": {
+            "price": 415.93,
+            "price_change_pct": 1.71,
+            "rs_momentum": 2.72,
+            "weight_current": 1.5641,
+            "shares_current": 1420918,
+            "shares_change": 3852,
+            "dollar_flow": 1602162.33,
+            "display": {
+                "price": "$415.93",
+                "price_change_pct": "+1.71%",
+                "rs_momentum": "SPY 대비 +2.72%p",
+                "shares_current": "1,420,918주",
+                "holdings_value": "$591.00M",
+                "dollar_flow": "$1.60M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "EXE": {
+            "price": 87.81,
+            "price_change_pct": 0.82,
+            "rs_momentum": -2.51,
+            "weight_current": 1.3633,
+            "shares_current": 5866757,
+            "shares_change": 15948,
+            "dollar_flow": 1400393.84,
+            "display": {
+                "price": "$87.81",
+                "price_change_pct": "+0.82%",
+                "rs_momentum": "SPY 대비 -2.51%p",
+                "shares_current": "5,866,757주",
+                "holdings_value": "$515.16M",
+                "dollar_flow": "$1.40M 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        },
+        "APA": {
+            "price": 34.53,
+            "price_change_pct": -0.4,
+            "rs_momentum": 1.01,
+            "weight_current": 0.7921,
+            "shares_current": 8668493,
+            "shares_change": 23544,
+            "dollar_flow": 812974.29,
+            "display": {
+                "price": "$34.53",
+                "price_change_pct": "-0.40%",
+                "rs_momentum": "SPY 대비 +1.01%p",
+                "shares_current": "8,668,493주",
+                "holdings_value": "$299.32M",
+                "dollar_flow": "$812,974 유입",
+                "flow_ratio_pct": "+0.27%"
+            }
+        }
+    },
+    "raw_data": {
+        "XOM": {
+            "shares": 52352449.0,
+            "weight": 20.10194
+        },
+        "CVX": {
+            "shares": 30645896.0,
+            "weight": 14.741244
+        },
+        "COP": {
+            "shares": 19943111.0,
+            "weight": 5.904322
+        },
+        "MPC": {
+            "shares": 6159505.0,
+            "weight": 4.945667
+        },
+        "PSX": {
+            "shares": 9173538.0,
+            "weight": 4.890662
+        },
+        "VLO": {
+            "shares": 5995236.0,
+            "weight": 4.782514
+        },
+        "EOG": {
+            "shares": 12102293.0,
+            "weight": 4.420198
+        },
+        "SLB": {
+            "shares": 34425746.0,
+            "weight": 4.331178
+        },
+        "WMB": {
+            "shares": 21350405.0,
+            "weight": 4.293079
+        },
+        "KMI": {
+            "shares": 48013500.0,
+            "weight": 4.134704
+        },
+        "TRGP": {
+            "shares": 5263957.0,
+            "weight": 3.922911
+        },
+        "OKE": {
+            "shares": 15450649.0,
+            "weight": 3.757731
+        },
+        "BKR": {
+            "shares": 24329149.0,
+            "weight": 3.719892
+        },
+        "DVN": {
+            "shares": 28274466.0,
+            "weight": 3.247489
+        },
+        "OXY": {
+            "shares": 17806295.0,
+            "weight": 2.571526
+        },
+        "FANG": {
+            "shares": 4760200.0,
+            "weight": 2.402241
+        },
+        "EQT": {
+            "shares": 15338988.0,
+            "weight": 2.021979
+        },
+        "HAL": {
+            "shares": 20486932.0,
+            "weight": 1.920388
+        },
+        "TPL": {
+            "shares": 1420918.0,
+            "weight": 1.564058
+        },
+        "EXE": {
+            "shares": 5866757.0,
+            "weight": 1.363344
+        },
+        "APA": {
+            "shares": 8668493.0,
+            "weight": 0.792143
+        }
+    }
+}
