@@ -1,7 +1,9 @@
 import io
 import json
+import math
 import os
 import re
+import sys
 import time
 from datetime import datetime, timedelta
 import pandas as pd
@@ -19,6 +21,23 @@ DETAILS_DIR = "details"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
 }
+
+
+def check_has_nan(obj):
+    """재귀적으로 dict, list 및 단일 값에 NaN(Not a Number)이 포함되어 있는지 확인합니다.
+    (None/null 값은 정상 데이터로 간주하여 패스합니다)
+    """
+    if isinstance(obj, dict):
+        return any(check_has_nan(v) for v in obj.values())
+    elif isinstance(obj, (list, tuple)):
+        return any(check_has_nan(item) for item in obj)
+    elif obj is None:
+        return False
+    elif isinstance(obj, float) and math.isnan(obj):
+        return True
+    elif pd.isna(obj) and not isinstance(obj, (str, bool)):
+        return True
+    return False
 
 
 def format_value(value):
@@ -68,6 +87,8 @@ def get_raw_aum(val):
     """AUM 값을 포맷팅 없이 순수 숫자 형식(int 또는 float)으로 반환합니다."""
     try:
         val_float = float(val)
+        if math.isnan(val_float):
+            return None
         if val_float.is_integer():
             return int(val_float)
         return val_float
@@ -447,8 +468,8 @@ def main():
                     )
                     flow_ratio_20d_display = f"{flow_ratio_20d_value:.1f}배"
 
-            # 8. 데이터 저장 1: XL_metrics.json (AUM 정보 반영)
-            metrics_data[etf]["history"][excel_date_str] = {
+            # 8. 저장용 객증 구조 준비
+            new_metrics_entry = {
                 "ETF_Price": {
                     "value": round(etf_price, 2),
                     "change_amt": round(etf_change_amt, 2),
@@ -478,8 +499,6 @@ def main():
                 },
             }
 
-            # 9. 데이터 저장 2: details/ETF명/YYYY-MM-DD.json
-            detail_file_path = os.path.join(etf_dir, f"{excel_date_str}.json")
             detail_data = {
                 "etf": etf,
                 "date": excel_date_str,
@@ -487,6 +506,20 @@ def main():
                 "raw_data": current_raw_data,
             }
 
+            # 9. NaN 검증 및 파일/메모리 추가 처리 (NaN 발생 시 패닉 종료)
+            if check_has_nan(new_metrics_entry) or check_has_nan(detail_data):
+                print(
+                    f"\n❌ [오류 발생] {etf} ({excel_date_str}) 결과값 중 NaN(Not a Number) 데이터가 감지되었습니다!"
+                )
+                print(
+                    "   JSON에 데이터를 반영하지 않고 안전하게 프로그램을 종료합니다."
+                )
+                sys.exit(1)
+
+            # 검증 통과 후 메인 메모리 객체 및 상세 파일 저장 진행
+            metrics_data[etf]["history"][excel_date_str] = new_metrics_entry
+
+            detail_file_path = os.path.join(etf_dir, f"{excel_date_str}.json")
             with open(detail_file_path, "w", encoding="utf-8") as f:
                 json.dump(detail_data, f, indent=4, ensure_ascii=False)
 
@@ -497,10 +530,17 @@ def main():
             # 서버 요청 부하 완화를 위한 일시 대기 (1.5초)
             time.sleep(1.5)
 
+    # 최종 메트릭 파일 저장 전에도 전체 결과물에 대한 NaN 최종 점검 진행
+    if check_has_nan(metrics_data):
+        print(
+            "\n❌ [오류 발생] 최종 메트릭 데이터 전체 검사 중 NaN이 감지되어 METRICS_FILE 저장을 취소합니다."
+        )
+        sys.exit(1)
+
     with open(METRICS_FILE, "w", encoding="utf-8") as f:
         json.dump(metrics_data, f, indent=4, ensure_ascii=False)
 
-    print("모든 처리가 완료되었습니다!")
+    print("모든 처리가 성공적으로 완료되었습니다!")
 
 
 if __name__ == "__main__":
